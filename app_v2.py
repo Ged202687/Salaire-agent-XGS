@@ -237,19 +237,17 @@ def creer_compte_supabase(matricule, mot_de_passe, nom=None):
 
 def authentifier_ou_creer_compte(matricule, mot_de_passe, nom=None):
     """
-    Première connexion :
-      - crée le compte avec l'API Admin ;
-      - aucun e-mail n'est envoyé ;
-      - email_confirm=True ;
-      - connexion immédiate.
-
-    Connexions suivantes :
-      - vérifie le mot de passe avec Supabase Auth.
+    Authentifie l'utilisateur.
+    
+    - Si le compte existe : connexion normale.
+    - Si le compte n'existe pas : création du compte sans email,
+      puis connexion immédiate.
     """
+
     if supabase is None or supabase_admin is None:
         return False, (
-            "Supabase n'est pas configuré. Vérifiez les secrets de l'application "
-            "(SUPABASE_URL, SUPABASE_KEY et SUPABASE_SECRET_KEY)."
+            "Supabase n'est pas configuré. Vérifiez les secrets de "
+            "l'application."
         )
 
     matricule = str(matricule).strip()
@@ -263,63 +261,90 @@ def authentifier_ou_creer_compte(matricule, mot_de_passe, nom=None):
 
     email = email_auth_depuis_matricule(matricule)
 
-    # --------------------------------------------------------
-    # 1. Première connexion : tentative de création
-    # --------------------------------------------------------
-    try:
-        creer_compte_supabase(
-            matricule=matricule,
-            mot_de_passe=mot_de_passe,
-            nom=nom,
-        )
+    # ============================================================
+    # 1. VÉRIFIER SI LE COMPTE EXISTE DÉJÀ
+    # ============================================================
 
-        # Le compte vient d'être créé.
-        # email_confirm=True => aucune confirmation par e-mail.
-        supabase.auth.sign_in_with_password({
+    utilisateur_existant = None
+
+    try:
+        utilisateurs = supabase_admin.auth.admin.list_users()
+
+        # Compatibilité avec différentes versions de supabase-py
+        if hasattr(utilisateurs, "users"):
+            utilisateurs = utilisateurs.users
+
+        elif hasattr(utilisateurs, "data"):
+            if hasattr(utilisateurs.data, "users"):
+                utilisateurs = utilisateurs.data.users
+            elif isinstance(utilisateurs.data, list):
+                utilisateurs = utilisateurs.data
+
+        for utilisateur in utilisateurs or []:
+
+            if getattr(utilisateur, "email", "").lower() == email.lower():
+                utilisateur_existant = utilisateur
+                break
+
+    except Exception as e:
+
+        return False, f"Impossible de vérifier le compte utilisateur : {e}"
+
+    # ============================================================
+    # 2. LE COMPTE EXISTE → CONNEXION
+    # ============================================================
+
+    if utilisateur_existant is not None:
+
+        try:
+
+            supabase.auth.sign_in_with_password({
+                "email": email,
+                "password": mot_de_passe
+            })
+
+            return True, "Connexion réussie."
+
+        except Exception:
+
+            return False, "Mot de passe incorrect."
+
+    # ============================================================
+    # 3. LE COMPTE N'EXISTE PAS → PREMIÈRE CONNEXION
+    # ============================================================
+
+    try:
+
+        supabase_admin.auth.admin.create_user({
             "email": email,
             "password": mot_de_passe,
+            "email_confirm": True,
+            "user_metadata": {
+                "matricule": matricule,
+                "nom": str(nom or "").strip()
+            }
+        })
+
+    except Exception as e:
+
+        return False, f"Impossible de créer le compte : {e}"
+
+    # ============================================================
+    # 4. CONNEXION IMMÉDIATE APRÈS CRÉATION
+    # ============================================================
+
+    try:
+
+        supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": mot_de_passe
         })
 
         return True, "Compte créé et connexion réussie."
 
     except Exception as e:
-        message = str(e).lower()
 
-        # Si le compte existe déjà, ce n'est pas une erreur fonctionnelle :
-        # on passe à l'authentification normale.
-        compte_existant = (
-            "already registered" in message
-            or "already exists" in message
-            or "user already exists" in message
-            or "duplicate" in message
-            or "email address is already registered" in message
-        )
-
-        if not compte_existant:
-            return False, f"Impossible de créer le compte : {e}"
-
-    # --------------------------------------------------------
-    # 2. Compte existant : connexion normale
-    # --------------------------------------------------------
-    try:
-        connexion = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": mot_de_passe,
-        })
-
-        if getattr(connexion, "session", None) is not None:
-            return True, "Connexion réussie."
-
-        return False, "Mot de passe incorrect."
-
-    except Exception:
-        return False, "Mot de passe incorrect."
-
-def formater_fcfa(valeur):
-    try:
-        return f"{valeur:,.0f} FCFA".replace(",", " ")
-    except (ValueError, TypeError):
-        return "-" if valeur in (None, "") else valeur
+        return False, f"Compte créé mais connexion impossible : {e}"
 
 
 # ---------- Interface ----------
