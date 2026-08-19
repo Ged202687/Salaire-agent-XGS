@@ -6,7 +6,7 @@ import unicodedata
 import os
 
 # ---------- Configuration ----------
-st.set_page_config(page_title="Consultation des primes / salaires", page_icon="💰", layout="centered")
+st.set_page_config(page_title="Bienvenu sur votre consultation de salaire", page_icon="💰", layout="centered")
 
 FICHIER_EXCEL = "ETAT_DES_PRIMES_Aout_2026.xlsx"
 FEUILLES_IGNOREES = {"prime manager"}  # comparées en minuscule, sans accent
