@@ -16,12 +16,31 @@ LOGO_FICHIER = "logo_xgs.png"
 FEUILLES_IGNOREES = {"prime manager"}  # comparées en minuscule, sans accent
 
 # ---------- Supabase ----------
-try:
-    SUPABASE_URL = st.secrets["SUPABASE_URL"]
-    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception:
-    supabase = None
+@st.cache_resource
+def initialiser_supabase():
+    """
+    Client public : authentification normale.
+    Client admin : création des comptes sans envoi d'e-mail.
+    La clé secrète reste uniquement côté serveur (Secrets Streamlit).
+    """
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        publishable_key = st.secrets["SUPABASE_KEY"]
+        secret_key = st.secrets["SUPABASE_SECRET_KEY"]
+
+        if not url or not publishable_key or not secret_key:
+            return None, None
+
+        client = create_client(url, publishable_key)
+        admin_client = create_client(url, secret_key)
+
+        return client, admin_client
+
+    except Exception:
+        return None, None
+
+
+supabase, supabase_admin = initialiser_supabase()
 
 
 @st.cache_data
@@ -197,45 +216,91 @@ def email_auth_depuis_matricule(matricule):
     return f"{matricule_normalise}@xgs.local"
 
 
-def authentifier_ou_creer_compte(matricule, mot_de_passe):
+def creer_compte_supabase(matricule, mot_de_passe, nom=None):
     """
-    Première connexion : crée le compte Supabase.
-    Connexions suivantes : vérifie le mot de passe avec Supabase Auth.
+    Crée un compte Supabase avec l'API Admin.
+    Aucun e-mail n'est envoyé.
+    email_confirm=True considère immédiatement l'identifiant comme confirmé.
     """
-    if supabase is None:
-        return False, "Supabase n'est pas configuré. Vérifiez les secrets de l'application."
+    email = email_auth_depuis_matricule(matricule)
+
+    return supabase_admin.auth.admin.create_user({
+        "email": email,
+        "password": str(mot_de_passe),
+        "email_confirm": True,
+        "user_metadata": {
+            "matricule": str(matricule).strip(),
+            "nom": str(nom or "").strip(),
+        },
+    })
+
+
+def authentifier_ou_creer_compte(matricule, mot_de_passe, nom=None):
+    """
+    Première connexion :
+      - crée le compte avec l'API Admin ;
+      - aucun e-mail n'est envoyé ;
+      - email_confirm=True ;
+      - connexion immédiate.
+
+    Connexions suivantes :
+      - vérifie le mot de passe avec Supabase Auth.
+    """
+    if supabase is None or supabase_admin is None:
+        return False, (
+            "Supabase n'est pas configuré. Vérifiez les secrets de l'application "
+            "(SUPABASE_URL, SUPABASE_KEY et SUPABASE_SECRET_KEY)."
+        )
+
+    matricule = str(matricule).strip()
+    mot_de_passe = str(mot_de_passe)
+
+    if not matricule:
+        return False, "Veuillez saisir votre matricule."
+
+    if not mot_de_passe:
+        return False, "Veuillez saisir votre mot de passe."
 
     email = email_auth_depuis_matricule(matricule)
 
-    # On tente d'abord la création du compte. Si le compte existe déjà,
-    # Supabase renverra une erreur et on passera à la connexion normale.
+    # --------------------------------------------------------
+    # 1. Première connexion : tentative de création
+    # --------------------------------------------------------
     try:
-        inscription = supabase.auth.sign_up({
+        creer_compte_supabase(
+            matricule=matricule,
+            mot_de_passe=mot_de_passe,
+            nom=nom,
+        )
+
+        # Le compte vient d'être créé.
+        # email_confirm=True => aucune confirmation par e-mail.
+        supabase.auth.sign_in_with_password({
             "email": email,
             "password": mot_de_passe,
         })
 
-        if getattr(inscription, "user", None) is not None:
-            # Avec "Confirm email" désactivé dans Supabase, une session
-            # est créée immédiatement après l'inscription.
-            if getattr(inscription, "session", None) is not None:
-                return True, "Compte créé et connexion réussie."
+        return True, "Compte créé et connexion réussie."
 
-            # Si la confirmation email est activée, notre adresse technique
-            # ne peut pas recevoir le mail de confirmation.
-            return False, (
-                "Le compte a été créé mais la confirmation email est activée dans Supabase. "
-                "Désactivez 'Confirm email' dans Authentication > Providers > Email."
-            )
+    except Exception as e:
+        message = str(e).lower()
 
-    except Exception as e:  # noqa: BLE001
-        message = str(e)
+        # Si le compte existe déjà, ce n'est pas une erreur fonctionnelle :
+        # on passe à l'authentification normale.
+        compte_existant = (
+            "already registered" in message
+            or "already exists" in message
+            or "user already exists" in message
+            or "duplicate" in message
+            or "email address is already registered" in message
+        )
 
-        # Si le compte existe déjà, on passe à la vérification du mot de passe.
-        if "already registered" not in message.lower() and "already exists" not in message.lower():
-            return False, f"Impossible de créer le compte : {message}"
+        if not compte_existant:
+            return False, f"Impossible de créer le compte : {e}"
 
-    # Compte déjà existant : authentification normale.
+    # --------------------------------------------------------
+    # 2. Compte existant : connexion normale
+    # --------------------------------------------------------
     try:
         connexion = supabase.auth.sign_in_with_password({
             "email": email,
@@ -259,7 +324,10 @@ def formater_fcfa(valeur):
 
 # ---------- Interface ----------
 st.title("Bienvenu ! Votre salaire près de vous")
-st.caption("Entrez votre matricule et votre mot de passe pour consulter le détail, mois par mois. Cette vue est en lecture seule.")
+st.caption(
+    "Entrez votre matricule et votre mot de passe pour consulter le détail, mois par mois. "
+    "Lors de votre première connexion, votre compte est créé automatiquement."
+)
 
 df, feuilles_lues = charger_donnees()
 
@@ -289,9 +357,15 @@ if valider:
         if correspondances.empty:
             st.error("Matricule inconnu. Contactez le service RH si besoin.")
         else:
+            nom_utilisateur = ""
+            if "Nom" in correspondances.columns:
+                valeur_nom = correspondances.iloc[0]["Nom"]
+                nom_utilisateur = "" if pd.isna(valeur_nom) else str(valeur_nom).strip()
+
             authentifie, message = authentifier_ou_creer_compte(
                 matricule_saisi,
-                mot_de_passe_saisi
+                mot_de_passe_saisi,
+                nom_utilisateur
             )
 
             if authentifie:
