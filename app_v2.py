@@ -6,12 +6,22 @@ import unicodedata
 import os
 import base64
 
+from supabase import create_client, Client
+
 # ---------- Configuration ----------
 st.set_page_config(page_title="Bienvenu ! Votre salaire près de vous", page_icon="💰", layout="centered")
 
 FICHIER_EXCEL = "ETAT_DES_PRIMES_Aout_2026.xlsx"
 LOGO_FICHIER = "logo_xgs.png"
 FEUILLES_IGNOREES = {"prime manager"}  # comparées en minuscule, sans accent
+
+# ---------- Supabase ----------
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception:
+    supabase = None
 
 
 @st.cache_data
@@ -159,10 +169,8 @@ def charger_donnees():
                 return ws.cell(row=r, column=col).value if col else None
 
             matricule = val("Matricule")
-            mot_de_passe = val("MotDePasse")
             lignes.append({
                 "Matricule": str(matricule).strip() if matricule not in (None, "") else None,
-                "MotDePasse": str(mot_de_passe).strip() if mot_de_passe not in (None, "") else None,
                 "Nom": str(nom).strip(),
                 "Mois": mois_label,
                 "Annee": annee,
@@ -182,6 +190,65 @@ def charger_donnees():
     df = pd.DataFrame(lignes)
     return df, feuilles_lues
 
+
+def email_auth_depuis_matricule(matricule):
+    """Identifiant technique utilisé par Supabase Auth à partir du matricule."""
+    matricule_normalise = str(matricule).strip().lower()
+    return f"{matricule_normalise}@xgs.local"
+
+
+def authentifier_ou_creer_compte(matricule, mot_de_passe):
+    """
+    Première connexion : crée le compte Supabase.
+    Connexions suivantes : vérifie le mot de passe avec Supabase Auth.
+    """
+    if supabase is None:
+        return False, "Supabase n'est pas configuré. Vérifiez les secrets de l'application."
+
+    email = email_auth_depuis_matricule(matricule)
+
+    # On tente d'abord la création du compte. Si le compte existe déjà,
+    # Supabase renverra une erreur et on passera à la connexion normale.
+    try:
+        inscription = supabase.auth.sign_up({
+            "email": email,
+            "password": mot_de_passe,
+        })
+
+        if getattr(inscription, "user", None) is not None:
+            # Avec "Confirm email" désactivé dans Supabase, une session
+            # est créée immédiatement après l'inscription.
+            if getattr(inscription, "session", None) is not None:
+                return True, "Compte créé et connexion réussie."
+
+            # Si la confirmation email est activée, notre adresse technique
+            # ne peut pas recevoir le mail de confirmation.
+            return False, (
+                "Le compte a été créé mais la confirmation email est activée dans Supabase. "
+                "Désactivez 'Confirm email' dans Authentication > Providers > Email."
+            )
+
+    except Exception as e:  # noqa: BLE001
+        message = str(e)
+
+        # Si le compte existe déjà, on passe à la vérification du mot de passe.
+        if "already registered" not in message.lower() and "already exists" not in message.lower():
+            return False, f"Impossible de créer le compte : {message}"
+
+    # Compte déjà existant : authentification normale.
+    try:
+        connexion = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": mot_de_passe,
+        })
+
+        if getattr(connexion, "session", None) is not None:
+            return True, "Connexion réussie."
+
+        return False, "Mot de passe incorrect."
+
+    except Exception:
+        return False, "Mot de passe incorrect."
 
 def formater_fcfa(valeur):
     try:
@@ -214,17 +281,25 @@ if valider:
     if not matricule_saisi or not mot_de_passe_saisi:
         st.warning("Veuillez renseigner votre matricule et votre mot de passe.")
     else:
-        correspondances = df[df["Matricule"] == matricule_saisi]
+        correspondances = df[
+            df["Matricule"].astype(str).str.strip().str.lower()
+            == matricule_saisi.strip().lower()
+        ]
 
         if correspondances.empty:
             st.error("Matricule inconnu. Contactez le service RH si besoin.")
-        elif correspondances.iloc[0]["MotDePasse"] is None:
-            st.error("Aucun mot de passe n'a encore été défini pour ce matricule. Contactez le service RH.")
-        elif correspondances.iloc[0]["MotDePasse"] != mot_de_passe_saisi:
-            st.error("Mot de passe incorrect.")
         else:
-            st.session_state["connecte"] = True
-            st.session_state["matricule_connecte"] = matricule_saisi
+            authentifie, message = authentifier_ou_creer_compte(
+                matricule_saisi,
+                mot_de_passe_saisi
+            )
+
+            if authentifie:
+                st.session_state["connecte"] = True
+                st.session_state["matricule_connecte"] = matricule_saisi.strip()
+                st.success(message)
+            else:
+                st.error(message)
 
 if st.session_state.get("connecte"):
     resultats = df[df["Matricule"] == st.session_state["matricule_connecte"]].copy()
@@ -280,4 +355,4 @@ if st.session_state.get("connecte"):
             st.rerun()
 
 st.divider()
-st.caption("Cette page est en lecture seule : aucune donnée ne peut être modifiée depuis cette interface.")
+st.caption("Cette page est en lecture seule : les données de salaire sont consultées depuis le fichier de référence. L’authentification est gérée par Supabase.")
