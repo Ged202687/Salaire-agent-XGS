@@ -17,8 +17,8 @@ FEUILLES_IGNOREES = {"prime manager"}  # comparées en minuscule, sans accent
 
 # ---------- Supabase ----------
 try:
-    SUPABASE_URL = st.secrets["SUPABASE_URL"]
-    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+    SUPABASE_URL = st.secrets["https://fipvndiueabrehsmqxth.supabase.co"]
+    SUPABASE_KEY = st.secrets["sb_publishable_aNR2zGeJS9UgYLnvsvtVaw_tItHLC10"]
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception:
     supabase = None
