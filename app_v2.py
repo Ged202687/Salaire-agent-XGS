@@ -346,6 +346,11 @@ def authentifier_ou_creer_compte(matricule, mot_de_passe, nom=None):
 
         return False, f"Compte créé mais connexion impossible : {e}"
 
+def formater_fcfa(valeur):
+    try:
+        return f"{valeur:,.0f} FCFA".replace(",", " ")
+    except (ValueError, TypeError):
+        return "-" if valeur in (None, "") else valeur
 
 # ---------- Interface ----------
 st.title("Bienvenu ! Votre salaire près de vous")
