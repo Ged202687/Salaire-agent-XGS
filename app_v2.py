@@ -53,6 +53,8 @@ def mapper_colonnes(ws, ligne_entete, mois_norm):
             continue
         if "matricule" in intitule:
             mapping["Matricule"] = c
+        elif "mot de passe" in intitule or "password" in intitule:
+            mapping["MotDePasse"] = c
         elif "nom et prenom" in intitule:
             mapping["Nom"] = c
         elif intitule == "projet" or "projet" in intitule:
@@ -114,8 +116,10 @@ def charger_donnees():
                 return ws.cell(row=r, column=col).value if col else None
 
             matricule = val("Matricule")
+            mot_de_passe = val("MotDePasse")
             lignes.append({
                 "Matricule": str(matricule).strip() if matricule not in (None, "") else None,
+                "MotDePasse": str(mot_de_passe).strip() if mot_de_passe not in (None, "") else None,
                 "Nom": str(nom).strip(),
                 "Mois": mois_label,
                 "Annee": annee,
@@ -156,10 +160,31 @@ if df is None:
     )
     st.stop()
 
-matricule_saisi = st.text_input("Votre matricule", placeholder="Ex : A001").strip()
+with st.form("connexion"):
+    matricule_saisi = st.text_input("Votre matricule", placeholder="Ex : A001").strip()
+    mot_de_passe_saisi = st.text_input("Votre mot de passe", type="password").strip()
+    valider = st.form_submit_button("Voir mon salaire")
 
-if matricule_saisi:
-    resultats = df[df["Matricule"] == matricule_saisi].copy()
+if valider:
+    st.session_state["connecte"] = False
+
+    if not matricule_saisi or not mot_de_passe_saisi:
+        st.warning("Veuillez renseigner votre matricule et votre mot de passe.")
+    else:
+        correspondances = df[df["Matricule"] == matricule_saisi]
+
+        if correspondances.empty:
+            st.error("Matricule inconnu. Contactez le service RH si besoin.")
+        elif correspondances.iloc[0]["MotDePasse"] is None:
+            st.error("Aucun mot de passe n'a encore été défini pour ce matricule. Contactez le service RH.")
+        elif correspondances.iloc[0]["MotDePasse"] != mot_de_passe_saisi:
+            st.error("Mot de passe incorrect.")
+        else:
+            st.session_state["connecte"] = True
+            st.session_state["matricule_connecte"] = matricule_saisi
+
+if st.session_state.get("connecte"):
+    resultats = df[df["Matricule"] == st.session_state["matricule_connecte"]].copy()
 
     if resultats.empty:
         st.warning(
@@ -168,7 +193,7 @@ if matricule_saisi:
         )
     else:
         nom_complet = resultats.iloc[0]["Nom"]
-        st.success(f"Bienvenue, **{nom_complet}** (Matricule : {matricule_saisi})")
+        st.success(f"Bienvenue, **{nom_complet}** (Matricule : {st.session_state['matricule_connecte']})")
 
         resultats = resultats.sort_values(["Annee", "ordre_mois"])
 
@@ -205,6 +230,11 @@ if matricule_saisi:
 
         if ligne.get("Projet") or ligne.get("Poste"):
             st.caption(f"Projet : {ligne.get('Projet', '-')}  |  Poste : {ligne.get('Poste', '-')}")
+
+        if st.button("Se déconnecter"):
+            st.session_state["connecte"] = False
+            st.session_state.pop("matricule_connecte", None)
+            st.rerun()
 
 st.divider()
 st.caption("Cette page est en lecture seule : aucune donnée ne peut être modifiée depuis cette interface.")
