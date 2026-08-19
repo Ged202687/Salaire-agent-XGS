@@ -4,15 +4,58 @@ import openpyxl
 import re
 import unicodedata
 import os
+import base64
 
 # ---------- Configuration ----------
-st.set_page_config(page_title="Bienvenu sur votre consultation de salaire", page_icon="💰", layout="centered")
+st.set_page_config(page_title="Bienvenu ! Votre salaire près de vous", page_icon="💰", layout="centered")
 
 FICHIER_EXCEL = "ETAT_DES_PRIMES_Aout_2026.xlsx"
+LOGO_FICHIER = "logo_xgs.png"
 FEUILLES_IGNOREES = {"prime manager"}  # comparées en minuscule, sans accent
+
+
+@st.cache_data
+def charger_logo_base64():
+    if not os.path.exists(LOGO_FICHIER):
+        return None
+    with open(LOGO_FICHIER, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+
+def appliquer_style():
+    logo_b64 = charger_logo_base64()
+    fond_logo = f', url("data:image/png;base64,{logo_b64}")' if logo_b64 else ""
+    taille_logo = ", 45%" if logo_b64 else ""
+
+    st.markdown(f"""
+    <style>
+    .stApp {{
+        background-image: linear-gradient(135deg, rgba(10, 25, 90, 0.93) 0%, rgba(30, 70, 190, 0.90) 45%, rgba(70, 140, 240, 0.88) 100%){fond_logo};
+        background-size: cover{taille_logo};
+        background-position: center, center 18%;
+        background-repeat: no-repeat, no-repeat;
+        background-attachment: fixed, fixed;
+    }}
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.93);
+        border-radius: 18px;
+        padding: 2.2rem 2.6rem;
+        margin-top: 1.2rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }}
+    h1, h2, h3, h4, h5, p, span, label, li,
+    .stMarkdown, .stCaption, .stTextInput label, .stSelectbox label {{
+        color: #000000 !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+appliquer_style()
 
 MOIS_FR = [
     "janvier", "fevrier", "mars", "avril", "mai", "juin",
+
     "juillet", "aout", "septembre", "octobre", "novembre", "decembre"
 ]
 
@@ -148,8 +191,8 @@ def formater_fcfa(valeur):
 
 
 # ---------- Interface ----------
-st.title("💰 Consultation de mes primes / salaire")
-st.caption("Entrez votre matricule pour consulter le détail, mois par mois. Cette vue est en lecture seule.")
+st.title("Bienvenu ! Votre salaire près de vous")
+st.caption("Entrez votre matricule et votre mot de passe pour consulter le détail, mois par mois. Cette vue est en lecture seule.")
 
 df, feuilles_lues = charger_donnees()
 
