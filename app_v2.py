@@ -96,6 +96,13 @@ def sans_accent(texte):
     return "".join(c for c in nfkd if unicodedata.category(c) != "Mn").lower().strip()
 
 
+def normaliser_matricule(valeur):
+    """Forme de comparaison d'un matricule : sans espaces autour, en minuscules."""
+    if valeur is None:
+        return ""
+    return str(valeur).strip().lower()
+
+
 def extraire_mois_annee(nom_feuille):
     """Ex: 'Août 2026' -> ('Aout', 2026, index_mois)."""
     m = re.search(r"(\D+)\s*(\d{4})", nom_feuille)
@@ -141,12 +148,17 @@ def mapper_colonnes(ws, ligne_entete, mois_norm):
             mapping["Net_A_Payer"] = c
         elif "coach" in intitule:
             mapping["Prime_Coach"] = c
-        elif "prime" in intitule:
-            mapping["Prime_Anterieure"] = c
-        elif "total" in intitule and mois_norm and mois_norm in intitule:
-            mapping["Total_Mois"] = c
-        elif "total" in intitule and "sans formule" in intitule:
-            mapping.setdefault("Total_Mois_Precedent", c)
+        elif "prime" in intitule or "bonus" in intitule:
+            # Le report du mois precedent n'a pas le meme intitule d'une feuille
+            # a l'autre : "Bonus avril", "Prime Mai", "Prime Juillet"...
+            mapping.setdefault("Prime_Anterieure", c)
+        elif "total" in intitule:
+            # "Total Juillet sans formule" doit etre teste avant "Total <mois>",
+            # sinon il ecrase la colonne du total du mois sur la feuille Juillet.
+            if "sans formule" in intitule:
+                mapping.setdefault("Total_Mois_Precedent", c)
+            elif mois_norm and mois_norm in intitule:
+                mapping["Total_Mois"] = c
     return mapping
 
 
@@ -207,6 +219,7 @@ def charger_donnees():
         return None, feuilles_lues
 
     df = pd.DataFrame(lignes)
+    df["Matricule_norm"] = df["Matricule"].map(normaliser_matricule)
     return df, feuilles_lues
 
 
@@ -380,8 +393,7 @@ if valider:
         st.warning("Veuillez renseigner votre matricule et votre mot de passe.")
     else:
         correspondances = df[
-            df["Matricule"].astype(str).str.strip().str.lower()
-            == matricule_saisi.strip().lower()
+            df["Matricule_norm"] == normaliser_matricule(matricule_saisi)
         ]
 
         if correspondances.empty:
@@ -400,13 +412,18 @@ if valider:
 
             if authentifie:
                 st.session_state["connecte"] = True
-                st.session_state["matricule_connecte"] = matricule_saisi.strip()
+                st.session_state["matricule_connecte"] = normaliser_matricule(matricule_saisi)
+                st.session_state["matricule_affiche"] = str(
+                    correspondances.iloc[0]["Matricule"]
+                ).strip()
                 st.success(message)
             else:
                 st.error(message)
 
 if st.session_state.get("connecte"):
-    resultats = df[df["Matricule"] == st.session_state["matricule_connecte"]].copy()
+    resultats = df[
+        df["Matricule_norm"] == st.session_state["matricule_connecte"]
+    ].copy()
 
     if resultats.empty:
         st.warning(
@@ -415,7 +432,10 @@ if st.session_state.get("connecte"):
         )
     else:
         nom_complet = resultats.iloc[0]["Nom"]
-        st.success(f"Bienvenue, **{nom_complet}** (Matricule : {st.session_state['matricule_connecte']})")
+        matricule_affiche = st.session_state.get(
+            "matricule_affiche", st.session_state["matricule_connecte"]
+        )
+        st.success(f"Bienvenue, **{nom_complet}** (Matricule : {matricule_affiche})")
 
         resultats = resultats.sort_values(["Annee", "ordre_mois"])
 
@@ -456,6 +476,7 @@ if st.session_state.get("connecte"):
         if st.button("Se déconnecter"):
             st.session_state["connecte"] = False
             st.session_state.pop("matricule_connecte", None)
+            st.session_state.pop("matricule_affiche", None)
             st.rerun()
 
 st.divider()
