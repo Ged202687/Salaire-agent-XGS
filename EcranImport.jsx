@@ -10,7 +10,7 @@ const TAILLE_LOT = 200;
 // le compte total suffit a savoir ou on en est.
 const MAX_REJETS_AFFICHES = 40;
 
-export default function EcranImport({ session, onRetour }) {
+export default function EcranImport({ session, onRetour, onAllerAdmin }) {
   const [lecture, setLecture] = useState(null); // { feuilles, retenues, rejetees, nomFichier }
   const [erreur, setErreur] = useState(null);
   const [occupe, setOccupe] = useState(false);
@@ -212,6 +212,24 @@ export default function EcranImport({ session, onRetour }) {
           >
             <CheckCircle2 size={14} /> {resultat.ecrites} bulletin
             {resultat.ecrites > 1 ? "s" : ""} écrit{resultat.ecrites > 1 ? "s" : ""} dans la base.
+            {onAllerAdmin && (
+              <button
+                type="button"
+                onClick={onAllerAdmin}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  marginLeft: 4,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: C.green,
+                  textDecoration: "underline",
+                }}
+              >
+                Voir le tableau de bord
+              </button>
+            )}
           </div>
         )}
 

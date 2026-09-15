@@ -1,38 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { C, POLICE_TEXTE, formaterFcfa } from "./theme.js";
-
-// Le trace est dessine a la largeur reelle du conteneur plutot que mis a
-// l'echelle depuis un viewBox fixe : sinon les etiquettes deviennent
-// illisibles sur un telephone.
-function useLargeur(reference) {
-  const [largeur, setLargeur] = useState(0);
-
-  useEffect(() => {
-    const element = reference.current;
-    if (!element) return undefined;
-
-    const mesurer = () => setLargeur(element.getBoundingClientRect().width);
-    mesurer();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", mesurer);
-      return () => window.removeEventListener("resize", mesurer);
-    }
-    const observateur = new ResizeObserver(mesurer);
-    observateur.observe(element);
-    return () => observateur.disconnect();
-  }, [reference]);
-
-  return largeur;
-}
-
-// Des graduations rondes, et au plus cinq : 0 / 50 000 / 100 000 / 150 000 /
-// 200 000 se lit, 0 / 45 500 / 91 000 non.
-function echelle(maximum) {
-  const candidats = [1000, 2000, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 500000];
-  const pas = candidats.find((p) => maximum / p <= 4) || 1000000;
-  return { haut: Math.max(Math.ceil(maximum / pas) * pas, pas), pas };
-}
+import { echelle, graduations, montantCourt, useLargeur } from "./graphique-commun.js";
 
 export default function GraphiqueEvolution({ points, moisSelectionne }) {
   const conteneur = useRef(null);
@@ -50,8 +18,7 @@ export default function GraphiqueEvolution({ points, moisSelectionne }) {
 
   const maximum = Math.max(...points.map((p) => p.valeur));
   const { haut, pas } = echelle(maximum);
-  const graduations = [];
-  for (let v = 0; v <= haut; v += pas) graduations.push(v);
+  const paliers = graduations(haut, pas);
 
   // Une seule serie : la base reste a zero. Un axe coupe transformerait
   // 20 000 FCFA d'ecart en envolee.
@@ -86,7 +53,7 @@ export default function GraphiqueEvolution({ points, moisSelectionne }) {
         role="img"
         aria-label="Évolution du total payé, mois par mois"
       >
-        {graduations.map((valeur) => (
+        {paliers.map((valeur) => (
           <g key={valeur}>
             <line
               x1={marge.gauche}
@@ -103,7 +70,7 @@ export default function GraphiqueEvolution({ points, moisSelectionne }) {
               fontSize="10.5"
               fill={C.mutedSoft}
             >
-              {valeur.toLocaleString("fr-FR").replace(/ | /g, " ")}
+              {montantCourt(valeur)}
             </text>
           </g>
         ))}

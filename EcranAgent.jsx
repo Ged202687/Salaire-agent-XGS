@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { LogOut, Upload } from "lucide-react";
+import { LayoutDashboard, LogOut, Upload } from "lucide-react";
 import { C, POLICE_TITRE, formaterFcfa, estVide, nomDuMois } from "./theme.js";
 import GraphiqueEvolution from "./GraphiqueEvolution.jsx";
 
@@ -88,7 +88,13 @@ function Ecart({ bulletin, precedent }) {
   );
 }
 
-export default function EcranAgent({ profil, bulletins, onDeconnexion, onAllerImport }) {
+export default function EcranAgent({
+  profil,
+  bulletins,
+  onDeconnexion,
+  onAllerImport,
+  onAllerAdmin,
+}) {
   const annees = useMemo(
     () => [...new Set(bulletins.map((b) => b.annee))].sort((a, b) => b - a),
     [bulletins]
@@ -173,7 +179,24 @@ export default function EcranAgent({ profil, bulletins, onDeconnexion, onAllerIm
             </div>
           </div>
 
-          <div className="flex" style={{ gap: 8 }}>
+          <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
+            {onAllerAdmin && (
+              <button
+                type="button"
+                onClick={onAllerAdmin}
+                className="flex items-center gap-2"
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 12.5,
+                  color: C.muted,
+                }}
+              >
+                <LayoutDashboard size={13} /> Tableau de bord
+              </button>
+            )}
             {onAllerImport && (
               <button
                 type="button"

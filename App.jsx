@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
-import { AlertTriangle, LogOut, Loader2, Upload } from "lucide-react";
+import { AlertTriangle, LayoutDashboard, LogOut, Loader2, Upload } from "lucide-react";
 import { C, FONTS, POLICE_TEXTE } from "./theme.js";
 import {
   SUPABASE_ANON_JWT,
@@ -14,8 +14,9 @@ import Connexion from "./Connexion.jsx";
 import EcranAgent from "./EcranAgent.jsx";
 
 // La lecture du classeur embarque SheetJS, soit l'essentiel du poids de l'app.
-// Seul un super_admin ouvre cet ecran : les agents n'ont pas a le telecharger.
+// Seul un super_admin ouvre ces ecrans : les agents n'ont pas a les telecharger.
 const EcranImport = lazy(() => import("./EcranImport.jsx"));
+const EcranAdmin = lazy(() => import("./EcranAdmin.jsx"));
 
 const CHAMPS_BULLETIN =
   "annee,mois,projet,poste,salaire_base,net_a_payer,prime_intitule,prime_montant,prime_coach,total_mois";
@@ -46,7 +47,7 @@ export default function App() {
 
   const [bulletins, setBulletins] = useState(null);
   const [erreurBulletins, setErreurBulletins] = useState(null);
-  const [vue, setVue] = useState("salaire"); // salaire | import
+  const [vue, setVue] = useState("salaire"); // salaire | import | admin
 
   // --- reprise d'une session apres un rechargement de page ------------------
   useEffect(() => {
@@ -192,31 +193,48 @@ export default function App() {
 
   const estSuperAdmin = session.profil.role === "super_admin";
 
+  const ecranDiffere = (contenu) => (
+    <>
+      {styleGlobal}
+      <Suspense
+        fallback={
+          <Cadre>
+            <div
+              className="flex items-center justify-center gap-2"
+              style={{ color: C.muted, fontSize: 13 }}
+            >
+              <Loader2 size={16} className="animate-spin" /> Chargement de l’écran…
+            </div>
+          </Cadre>
+        }
+      >
+        {contenu}
+      </Suspense>
+    </>
+  );
+
+  const retourSalaire = () => {
+    setVue("salaire");
+    chargerBulletins();
+  };
+
   if (vue === "import" && estSuperAdmin) {
-    return (
-      <>
-        {styleGlobal}
-        <Suspense
-          fallback={
-            <Cadre>
-              <div
-                className="flex items-center justify-center gap-2"
-                style={{ color: C.muted, fontSize: 13 }}
-              >
-                <Loader2 size={16} className="animate-spin" /> Chargement de l’écran d’import…
-              </div>
-            </Cadre>
-          }
-        >
-          <EcranImport
-            session={session}
-            onRetour={() => {
-              setVue("salaire");
-              chargerBulletins();
-            }}
-          />
-        </Suspense>
-      </>
+    return ecranDiffere(
+      <EcranImport
+        session={session}
+        onRetour={retourSalaire}
+        onAllerAdmin={() => setVue("admin")}
+      />
+    );
+  }
+
+  if (vue === "admin" && estSuperAdmin) {
+    return ecranDiffere(
+      <EcranAdmin
+        session={session}
+        onRetour={retourSalaire}
+        onAllerImport={() => setVue("import")}
+      />
     );
   }
 
@@ -272,21 +290,38 @@ export default function App() {
         </div>
         <div className="flex items-center justify-center gap-8" style={{ marginTop: 18 }}>
           {estSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => setVue("import")}
-              className="flex items-center gap-2"
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: "8px 12px",
-                fontSize: 12.5,
-                color: C.muted,
-              }}
-            >
-              <Upload size={13} /> Importer un classeur
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setVue("admin")}
+                className="flex items-center gap-2"
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 12.5,
+                  color: C.muted,
+                }}
+              >
+                <LayoutDashboard size={13} /> Tableau de bord
+              </button>
+              <button
+                type="button"
+                onClick={() => setVue("import")}
+                className="flex items-center gap-2"
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 12.5,
+                  color: C.muted,
+                }}
+              >
+                <Upload size={13} /> Importer un classeur
+              </button>
+            </>
           )}
           <button
             type="button"
@@ -316,6 +351,7 @@ export default function App() {
         bulletins={bulletins}
         onDeconnexion={deconnexion}
         onAllerImport={estSuperAdmin ? () => setVue("import") : null}
+        onAllerAdmin={estSuperAdmin ? () => setVue("admin") : null}
       />
     </>
   );

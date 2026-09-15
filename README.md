@@ -30,6 +30,22 @@ npx wrangler deploy
 [`supabase_bulletins_salaire.sql`](supabase_bulletins_salaire.sql). Le fichier
 crée la table, l'index, et les politiques RLS.
 
+## Le tableau de bord du super admin
+
+« Tableau de bord » donne la vue d'ensemble : la masse salariale de la sélection
+en chiffre principal, quatre tuiles (agents payés, moyenne par agent, part des
+primes, nombre de bulletins), un graphe en colonnes de la masse salariale mois
+par mois, et le tableau de tous les bulletins.
+
+Les filtres — année, mois, agent, projet — cadrent le tout. Le filtre mois est
+la seule exception : le graphe garde l'année entière sous les yeux et met le mois
+choisi en avant, sinon il ne resterait qu'une colonne à regarder. Quand un seul
+agent est sélectionné, l'écran parle de « total payé » et non de masse salariale.
+
+Cet écran ne fait que lire. Ce qu'il montre, c'est ce que la base accepte de lui
+donner : un agent qui l'atteindrait n'y verrait que ses propres lignes, la
+politique RLS s'en charge — pas l'écran.
+
 ## Alimenter les bulletins chaque mois
 
 Un `super_admin` ouvre « Importer un classeur » et dépose le `.xlsx` du mois.
