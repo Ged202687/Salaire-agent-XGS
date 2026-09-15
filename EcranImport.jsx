@@ -10,8 +10,11 @@ const TAILLE_LOT = 200;
 // le compte total suffit a savoir ou on en est.
 const MAX_REJETS_AFFICHES = 40;
 
+const clefMois = (annee, mois) => `${annee}-${String(mois).padStart(2, "0")}`;
+
 export default function EcranImport({ session, onRetour, onAllerAdmin }) {
   const [lecture, setLecture] = useState(null); // { feuilles, retenues, rejetees, nomFichier }
+  const [moisChoisis, setMoisChoisis] = useState(() => new Set());
   const [erreur, setErreur] = useState(null);
   const [occupe, setOccupe] = useState(false);
   const [resultat, setResultat] = useState(null);
@@ -45,15 +48,44 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
         );
       }
 
-      // Lecture seule : on ne fait que rapprocher, rien n'est ecrit avant que
-      // l'import soit demande explicitement.
-      const profils = await supaRest(
-        "profils?select=id,nom,login,matricule,role,actif&order=nom.asc",
-        { accessToken: session.accessToken }
-      );
+      // Lecture seule : on ne fait que rapprocher et regarder ce qui existe
+      // deja, rien n'est ecrit avant que l'import soit demande explicitement.
+      const [profils, dejaEnBase] = await Promise.all([
+        supaRest("profils?select=id,nom,login,matricule,role,actif&order=nom.asc", {
+          accessToken: session.accessToken,
+        }),
+        supaRest("bulletins_salaire?select=annee,mois&limit=5000", {
+          accessToken: session.accessToken,
+        }),
+      ]);
       const { retenues, rejetees } = rapprocherProfils(lignes, profils || []);
 
-      setLecture({ feuilles, retenues, rejetees, nomFichier: fichier.name, profils: profils?.length || 0 });
+      const existants = new Map();
+      (dejaEnBase || []).forEach((b) => {
+        const clef = clefMois(b.annee, b.mois);
+        existants.set(clef, (existants.get(clef) || 0) + 1);
+      });
+
+      setLecture({
+        feuilles,
+        retenues,
+        rejetees,
+        existants,
+        nomFichier: fichier.name,
+        profils: profils?.length || 0,
+      });
+
+      // Par defaut, on ne coche que les mois absents de la base : deposer le
+      // classeur de septembre ne doit pas reecrire avril a aout sans qu'on l'ait
+      // demande.
+      setMoisChoisis(
+        new Set(
+          feuilles
+            .filter((f) => !f.ignoree)
+            .map((f) => clefMois(f.annee, f.mois))
+            .filter((clef) => !existants.has(clef))
+        )
+      );
     } catch (e) {
       setErreur(e.message);
     } finally {
@@ -64,12 +96,12 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
   }
 
   async function ecrire() {
-    if (!lecture?.retenues.length) return;
+    if (!aEcrire.length) return;
     setOccupe(true);
     setErreur(null);
 
     try {
-      const bulletins = lecture.retenues.map((ligne) => ({
+      const bulletins = aEcrire.map((ligne) => ({
         profil_id: ligne.profil.id,
         annee: ligne.annee,
         mois: ligne.mois,
@@ -96,13 +128,36 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
         ecrites += lot.length;
       }
 
-      setResultat({ ecrites });
+      setResultat({ ecrites, mois: moisRetenusLibelle });
       setLecture(null);
+      setMoisChoisis(new Set());
     } catch (e) {
       setErreur(e.message);
     } finally {
       setOccupe(false);
     }
+  }
+
+  const moisDuFichier = (lecture?.feuilles || []).filter((f) => !f.ignoree);
+  const estChoisi = (annee, mois) => moisChoisis.has(clefMois(annee, mois));
+  const aEcrire = (lecture?.retenues || []).filter((l) => estChoisi(l.annee, l.mois));
+  const rejetsChoisis = (lecture?.rejetees || []).filter((l) => estChoisi(l.annee, l.mois));
+  const moisEcrases = moisDuFichier.filter(
+    (f) => estChoisi(f.annee, f.mois) && lecture?.existants?.has(clefMois(f.annee, f.mois))
+  );
+  const moisRetenusLibelle = moisDuFichier
+    .filter((f) => estChoisi(f.annee, f.mois))
+    .map((f) => `${nomDuMois(f.mois)} ${f.annee}`)
+    .join(", ");
+
+  function basculerMois(annee, mois) {
+    const clef = clefMois(annee, mois);
+    setMoisChoisis((precedent) => {
+      const suivant = new Set(precedent);
+      if (suivant.has(clef)) suivant.delete(clef);
+      else suivant.add(clef);
+      return suivant;
+    });
   }
 
   const titreSection = {
@@ -149,8 +204,9 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
         <p style={{ fontSize: 12.5, color: C.muted, marginTop: 6, lineHeight: 1.55 }}>
           Déposez le fichier .xlsx du mois. Chaque feuille nommée « Mois AAAA » est lue, les lignes
           sont rapprochées des comptes Auréo, et <strong>rien n’est écrit avant que vous le
-          demandiez</strong>. Un bulletin déjà présent pour le même agent et le même mois est
-          remplacé.
+          demandiez</strong>. Vous choisissez ensuite les mois à écrire : les mois déjà enregistrés
+          sont décochés d’office, pour qu’un classeur de septembre ne réécrive pas les mois
+          précédents.
         </p>
         <p style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.55 }}>
           Le rapprochement se fait sur la colonne <strong>login</strong> si elle existe, sinon sur
@@ -211,7 +267,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
             }}
           >
             <CheckCircle2 size={14} /> {resultat.ecrites} bulletin
-            {resultat.ecrites > 1 ? "s" : ""} écrit{resultat.ecrites > 1 ? "s" : ""} dans la base.
+            {resultat.ecrites > 1 ? "s" : ""} écrit{resultat.ecrites > 1 ? "s" : ""} dans la base
+            {resultat.mois ? ` — ${resultat.mois}` : ""}.
             {onAllerAdmin && (
               <button
                 type="button"
@@ -243,8 +300,16 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
                   <tr style={{ background: C.canvas, color: C.muted, textAlign: "left" }}>
-                    {["Feuille", "Mois", "Lignes", "Colonne de prime", "Colonne de total", "Rapproché par"].map(
-                      (entete) => (
+                    {[
+                      "Importer",
+                      "Feuille",
+                      "Mois",
+                      "Lignes",
+                      "Déjà en base",
+                      "Colonne de prime",
+                      "Colonne de total",
+                      "Rapproché par",
+                    ].map((entete) => (
                         <th
                           key={entete}
                           style={{
@@ -254,15 +319,31 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {entete}
-                        </th>
-                      )
-                    )}
+                        {entete}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {lecture.feuilles.map((feuille) => (
+                  {lecture.feuilles.map((feuille) => {
+                    const dejaLa = feuille.ignoree
+                      ? 0
+                      : lecture.existants.get(clefMois(feuille.annee, feuille.mois)) || 0;
+                    return (
                     <tr key={feuille.nom} style={{ color: feuille.ignoree ? C.mutedSoft : C.text }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                        {feuille.ignoree ? (
+                          "—"
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={estChoisi(feuille.annee, feuille.mois)}
+                            onChange={() => basculerMois(feuille.annee, feuille.mois)}
+                            aria-label={`Importer ${nomDuMois(feuille.mois)} ${feuille.annee}`}
+                            style={{ width: 16, height: 16, cursor: "pointer" }}
+                          />
+                        )}
+                      </td>
                       <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
                         {feuille.nom}
                       </td>
@@ -271,6 +352,16 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                       </td>
                       <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
                         {feuille.ignoree ? "—" : feuille.lignes}
+                      </td>
+                      <td
+                        style={{
+                          padding: "9px 11px",
+                          borderBottom: `1px solid ${C.borderSoft}`,
+                          color: dejaLa ? C.amber : C.mutedSoft,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {feuille.ignoree ? "—" : dejaLa ? `${dejaLa} bulletins` : "rien"}
                       </td>
                       <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
                         {feuille.colonnePrime || "—"}
@@ -282,16 +373,41 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                         {feuille.identifiantPar || "—"}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {lecture.rejetees.length > 0 && (
+            {moisEcrases.length > 0 && (
+              <div
+                className="flex items-start gap-2"
+                style={{
+                  marginTop: 12,
+                  background: C.amberSoft,
+                  color: "#8A5A10",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                }}
+              >
+                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  Vous avez coché{" "}
+                  {moisEcrases.map((f) => `${nomDuMois(f.mois)} ${f.annee}`).join(", ")}, déjà
+                  enregistré{moisEcrases.length > 1 ? "s" : ""} en base. Les bulletins de ces mois
+                  seront remplacés par ceux du fichier. Décochez-les pour n’écrire que les nouveaux
+                  mois.
+                </span>
+              </div>
+            )}
+
+            {rejetsChoisis.length > 0 && (
               <>
                 <div style={titreSection}>
-                  {lecture.rejetees.length} ligne{lecture.rejetees.length > 1 ? "s" : ""} laissée
-                  {lecture.rejetees.length > 1 ? "s" : ""} de côté
+                  {rejetsChoisis.length} ligne{rejetsChoisis.length > 1 ? "s" : ""} laissée
+                  {rejetsChoisis.length > 1 ? "s" : ""} de côté
                 </div>
                 <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 8 }}>
                   Ces lignes ne seront pas importées. Corrigez le classeur ou le compte Auréo, puis
@@ -300,7 +416,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                 <div style={{ overflowX: "auto", maxHeight: 260, overflowY: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                     <tbody>
-                      {lecture.rejetees.slice(0, MAX_REJETS_AFFICHES).map((ligne, i) => (
+                      {rejetsChoisis.slice(0, MAX_REJETS_AFFICHES).map((ligne, i) => (
                         <tr key={i}>
                           <td
                             style={{
@@ -335,21 +451,27 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                     </tbody>
                   </table>
                 </div>
-                {lecture.rejetees.length > MAX_REJETS_AFFICHES && (
+                {rejetsChoisis.length > MAX_REJETS_AFFICHES && (
                   <div style={{ fontSize: 12, color: C.mutedSoft, marginTop: 6 }}>
-                    et {lecture.rejetees.length - MAX_REJETS_AFFICHES} autre
-                    {lecture.rejetees.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} ligne
-                    {lecture.rejetees.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} non affichée
-                    {lecture.rejetees.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""}.
+                    et {rejetsChoisis.length - MAX_REJETS_AFFICHES} autre
+                    {rejetsChoisis.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} ligne
+                    {rejetsChoisis.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} non affichée
+                    {rejetsChoisis.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""}.
                   </div>
                 )}
               </>
             )}
 
             <div style={titreSection}>
-              {lecture.retenues.length} bulletin{lecture.retenues.length > 1 ? "s" : ""} prêt
-              {lecture.retenues.length > 1 ? "s" : ""} à écrire
+              {aEcrire.length} bulletin{aEcrire.length > 1 ? "s" : ""} prêt
+              {aEcrire.length > 1 ? "s" : ""} à écrire
+              {moisRetenusLibelle ? ` — ${moisRetenusLibelle}` : ""}
             </div>
+            {!aEcrire.length && (
+              <div style={{ fontSize: 12.5, color: C.muted }}>
+                Aucun mois coché : cochez au moins un mois dans le tableau ci-dessus.
+              </div>
+            )}
             <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
@@ -372,7 +494,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                   </tr>
                 </thead>
                 <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {lecture.retenues.map((ligne, i) => (
+                  {aEcrire.map((ligne, i) => (
                     <tr key={i} style={{ color: C.text }}>
                       <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
                         {ligne.profil.nom}
@@ -395,7 +517,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
             <button
               type="button"
               onClick={ecrire}
-              disabled={occupe || !lecture.retenues.length}
+              disabled={occupe || !aEcrire.length}
               className="flex items-center justify-center gap-2"
               style={{
                 marginTop: 18,
@@ -409,8 +531,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
               }}
             >
               {occupe ? <Loader2 size={14} className="animate-spin" /> : null}
-              Écrire {lecture.retenues.length} bulletin{lecture.retenues.length > 1 ? "s" : ""} dans
-              la base
+              Écrire {aEcrire.length} bulletin{aEcrire.length > 1 ? "s" : ""} dans la base
             </button>
           </>
         )}

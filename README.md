@@ -51,8 +51,14 @@ politique RLS s'en charge — pas l'écran.
 Un `super_admin` ouvre « Importer un classeur » et dépose le `.xlsx` du mois.
 L'outil lit chaque feuille nommée « Mois AAAA », montre ce qu'il a compris —
 colonne de prime retenue, colonne de total, lignes laissées de côté et pourquoi —
-et n'écrit qu'après confirmation. Un bulletin déjà présent pour le même agent et
-le même mois est remplacé.
+et n'écrit qu'après confirmation.
+
+**On choisit les mois à écrire.** Le classeur de septembre contient aussi avril à
+août ; une case par feuille décide de ce qui part en base, et les mois déjà
+enregistrés sont décochés d'office — la colonne « Déjà en base » dit combien de
+bulletins s'y trouvent. Cocher un mois déjà présent est possible, mais l'écran
+prévient alors que ses bulletins seront remplacés. Sans ce garde-fou, redéposer
+le classeur du mois réécrirait tout l'historique avec la version du moment.
 
 Le rapprochement entre une ligne du classeur et un compte Auréo se fait sur la
 colonne **login** si elle existe, sinon sur la colonne **matricule**. Le login est
