@@ -1,5 +1,10 @@
-__pycache__/
-*.pyc
+node_modules/
+dist/
 
 # Configuration locale de lancement (chemins propres a chaque machine)
 .claude/
+
+# Le classeur de paie ne revient jamais dans le depot : les bulletins vivent
+# dans Supabase, et ce depot est consultable.
+*.xlsx
+*.xlsm
