@@ -1,7 +1,17 @@
 import React, { useState } from "react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
-import { C, POLICE_TITRE, formaterFcfa, nomDuMois } from "./theme.js";
+import {
+  C,
+  POLICE_CHIFFRE,
+  POLICE_TITRE,
+  boutonSoleil,
+  carteVerre,
+  etiquetteChamp,
+  formaterFcfa,
+  nomDuMois,
+  titreSection as styleTitreSection,
+} from "./theme.js";
 import { lireClasseur, rapprocherProfils } from "./classeur.js";
 import { supaRest } from "./supabase.js";
 
@@ -12,7 +22,7 @@ const MAX_REJETS_AFFICHES = 40;
 
 const clefMois = (annee, mois) => `${annee}-${String(mois).padStart(2, "0")}`;
 
-export default function EcranImport({ session, onRetour, onAllerAdmin }) {
+export default function EcranImport({ session, onAllerAdmin }) {
   const [lecture, setLecture] = useState(null); // { feuilles, retenues, rejetees, nomFichier }
   const [moisChoisis, setMoisChoisis] = useState(() => new Set());
   const [erreur, setErreur] = useState(null);
@@ -160,55 +170,24 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
     });
   }
 
-  const titreSection = {
-    fontFamily: POLICE_TITRE,
-    fontSize: 15,
-    fontWeight: 600,
-    color: C.text,
-    marginTop: 24,
-    marginBottom: 8,
-  };
+  const titreSection = { ...styleTitreSection, marginTop: 26, marginBottom: 9 };
 
   return (
-    <div style={{ background: C.canvas, minHeight: "100vh", padding: "22px 16px 40px" }}>
-      <div
-        style={{
-          maxWidth: 860,
-          margin: "0 auto",
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: 18,
-          padding: "26px 26px 22px",
-          boxShadow: "0 8px 28px -18px rgba(18,22,31,0.35)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onRetour}
-          className="flex items-center gap-2"
-          style={{
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            fontSize: 12.5,
-            color: C.muted,
-            marginBottom: 16,
-          }}
+    <section style={{ ...carteVerre, padding: "26px 26px 24px" }}>
+        <div
+          className="disp"
+          style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.015em", color: C.encre }}
         >
-          <ArrowLeft size={14} /> Retour à mon salaire
-        </button>
-
-        <div className="disp" style={{ fontSize: 21, fontWeight: 600, color: C.text }}>
           Importer le classeur de paie
         </div>
-        <p style={{ fontSize: 12.5, color: C.muted, marginTop: 6, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 12.5, color: C.encre2, marginTop: 6, lineHeight: 1.55 }}>
           Déposez le fichier .xlsx du mois. Chaque feuille nommée « Mois AAAA » est lue, les lignes
           sont rapprochées des comptes Auréo, et <strong>rien n’est écrit avant que vous le
           demandiez</strong>. Vous choisissez ensuite les mois à écrire : les mois déjà enregistrés
           sont décochés d’office, pour qu’un classeur de septembre ne réécrive pas les mois
           précédents.
         </p>
-        <p style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 12.5, color: C.encre2, marginTop: 8, lineHeight: 1.55 }}>
           Le rapprochement se fait sur la colonne <strong>login</strong> si elle existe, sinon sur
           la colonne <strong>matricule</strong>. Le login est la clef fiable : un matricule porté par
           deux comptes ne peut pas être départagé.
@@ -218,13 +197,13 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
           className="flex items-center justify-center gap-2"
           style={{
             marginTop: 18,
-            border: `1.5px dashed ${C.border}`,
-            borderRadius: 12,
-            padding: "22px 16px",
+            border: `1.5px dashed ${C.bordureVive}`,
+            borderRadius: 14,
+            padding: "26px 16px",
             cursor: occupe ? "default" : "pointer",
-            color: C.muted,
+            color: C.encre2,
             fontSize: 13,
-            background: C.canvas,
+            background: C.verre,
           }}
         >
           {occupe ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
@@ -243,8 +222,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
             className="flex items-start gap-2"
             style={{
               marginTop: 16,
-              background: C.redSoft,
-              color: C.red,
+              background: C.baisseDoux,
+              color: C.baisse,
               borderRadius: 10,
               padding: "10px 12px",
               fontSize: 12.5,
@@ -259,8 +238,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
             className="flex items-center gap-2"
             style={{
               marginTop: 16,
-              background: C.greenSoft,
-              color: C.green,
+              background: C.hausseDoux,
+              color: C.hausse,
               borderRadius: 10,
               padding: "10px 12px",
               fontSize: 12.5,
@@ -280,7 +259,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                   marginLeft: 4,
                   fontSize: 12.5,
                   fontWeight: 600,
-                  color: C.green,
+                  color: C.hausse,
                   textDecoration: "underline",
                 }}
               >
@@ -293,13 +272,13 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
         {lecture && (
           <>
             <div style={titreSection}>Ce que le fichier contient</div>
-            <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 10 }}>
+            <div style={{ fontSize: 12.5, color: C.encre2, marginBottom: 10 }}>
               {lecture.nomFichier} — {lecture.profils} comptes Auréo consultés.
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
-                  <tr style={{ background: C.canvas, color: C.muted, textAlign: "left" }}>
+                  <tr style={{ background: C.verreHaut, color: C.encre2, textAlign: "left" }}>
                     {[
                       "Importer",
                       "Feuille",
@@ -313,9 +292,11 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                         <th
                           key={entete}
                           style={{
-                            padding: "9px 11px",
-                            fontWeight: 600,
-                            borderBottom: `1px solid ${C.border}`,
+                            ...etiquetteChamp,
+                            marginBottom: 0,
+                            textAlign: "left",
+                            padding: "0 11px 9px",
+                            borderBottom: `1px solid ${C.bordure}`,
                             whiteSpace: "nowrap",
                           }}
                         >
@@ -330,8 +311,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                       ? 0
                       : lecture.existants.get(clefMois(feuille.annee, feuille.mois)) || 0;
                     return (
-                    <tr key={feuille.nom} style={{ color: feuille.ignoree ? C.mutedSoft : C.text }}>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                    <tr key={feuille.nom} style={{ color: feuille.ignoree ? C.encre3 : C.encre }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.ignoree ? (
                           "—"
                         ) : (
@@ -344,32 +325,32 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                           />
                         )}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.nom}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.ignoree ? `ignorée — ${feuille.raison}` : `${nomDuMois(feuille.mois)} ${feuille.annee}`}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.ignoree ? "—" : feuille.lignes}
                       </td>
                       <td
                         style={{
                           padding: "9px 11px",
-                          borderBottom: `1px solid ${C.borderSoft}`,
-                          color: dejaLa ? C.amber : C.mutedSoft,
+                          borderBottom: `1px solid ${C.bordure}`,
+                          color: dejaLa ? C.alerte : C.encre3,
                           whiteSpace: "nowrap",
                         }}
                       >
                         {feuille.ignoree ? "—" : dejaLa ? `${dejaLa} bulletins` : "rien"}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.colonnePrime || "—"}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.colonneTotal || "—"}
                       </td>
-                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {feuille.identifiantPar || "—"}
                       </td>
                     </tr>
@@ -384,8 +365,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                 className="flex items-start gap-2"
                 style={{
                   marginTop: 12,
-                  background: C.amberSoft,
-                  color: "#8A5A10",
+                  background: C.alerteDoux,
+                  color: C.alerte,
                   borderRadius: 10,
                   padding: "10px 12px",
                   fontSize: 12.5,
@@ -409,7 +390,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                   {rejetsChoisis.length} ligne{rejetsChoisis.length > 1 ? "s" : ""} laissée
                   {rejetsChoisis.length > 1 ? "s" : ""} de côté
                 </div>
-                <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 8 }}>
+                <div style={{ fontSize: 12.5, color: C.encre2, marginBottom: 8 }}>
                   Ces lignes ne seront pas importées. Corrigez le classeur ou le compte Auréo, puis
                   redéposez le fichier.
                 </div>
@@ -421,9 +402,9 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                           <td
                             style={{
                               padding: "8px 11px",
-                              borderBottom: `1px solid ${C.borderSoft}`,
+                              borderBottom: `1px solid ${C.bordure}`,
                               whiteSpace: "nowrap",
-                              color: C.text,
+                              color: C.encre,
                             }}
                           >
                             {ligne.feuille} · ligne {ligne.ligneClasseur}
@@ -431,8 +412,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                           <td
                             style={{
                               padding: "8px 11px",
-                              borderBottom: `1px solid ${C.borderSoft}`,
-                              color: C.text,
+                              borderBottom: `1px solid ${C.bordure}`,
+                              color: C.encre,
                             }}
                           >
                             {ligne.nom}
@@ -440,8 +421,8 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                           <td
                             style={{
                               padding: "8px 11px",
-                              borderBottom: `1px solid ${C.borderSoft}`,
-                              color: C.red,
+                              borderBottom: `1px solid ${C.bordure}`,
+                              color: C.baisse,
                             }}
                           >
                             {ligne.raison}
@@ -452,7 +433,7 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                   </table>
                 </div>
                 {rejetsChoisis.length > MAX_REJETS_AFFICHES && (
-                  <div style={{ fontSize: 12, color: C.mutedSoft, marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: C.encre3, marginTop: 6 }}>
                     et {rejetsChoisis.length - MAX_REJETS_AFFICHES} autre
                     {rejetsChoisis.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} ligne
                     {rejetsChoisis.length - MAX_REJETS_AFFICHES > 1 ? "s" : ""} non affichée
@@ -468,24 +449,26 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
               {moisRetenusLibelle ? ` — ${moisRetenusLibelle}` : ""}
             </div>
             {!aEcrire.length && (
-              <div style={{ fontSize: 12.5, color: C.muted }}>
+              <div style={{ fontSize: 12.5, color: C.encre2 }}>
                 Aucun mois coché : cochez au moins un mois dans le tableau ci-dessus.
               </div>
             )}
             <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
-                  <tr style={{ background: C.canvas, color: C.muted, textAlign: "left" }}>
+                  <tr style={{ background: C.verreHaut, color: C.encre2, textAlign: "left" }}>
                     {["Agent", "Login", "Mois", "Total du mois"].map((entete) => (
                       <th
                         key={entete}
                         style={{
-                          padding: "9px 11px",
-                          fontWeight: 600,
-                          borderBottom: `1px solid ${C.border}`,
+                          ...etiquetteChamp,
+                          marginBottom: 0,
+                          textAlign: "left",
+                          padding: "0 11px 9px",
+                          borderBottom: `1px solid ${C.bordure}`,
                           position: "sticky",
                           top: 0,
-                          background: C.canvas,
+                          background: C.carte,
                         }}
                       >
                         {entete}
@@ -493,19 +476,19 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
                     ))}
                   </tr>
                 </thead>
-                <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
+                <tbody style={{ fontFamily: POLICE_CHIFFRE }}>
                   {aEcrire.map((ligne, i) => (
-                    <tr key={i} style={{ color: C.text }}>
-                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                    <tr key={i} style={{ color: C.encre }}>
+                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {ligne.profil.nom}
                       </td>
-                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {ligne.profil.login || "—"}
                       </td>
-                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {nomDuMois(ligne.mois)} {ligne.annee}
                       </td>
-                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
+                      <td style={{ padding: "8px 11px", borderBottom: `1px solid ${C.bordure}` }}>
                         {formaterFcfa(ligne.total_mois)}
                       </td>
                     </tr>
@@ -519,23 +502,13 @@ export default function EcranImport({ session, onRetour, onAllerAdmin }) {
               onClick={ecrire}
               disabled={occupe || !aEcrire.length}
               className="flex items-center justify-center gap-2"
-              style={{
-                marginTop: 18,
-                background: occupe ? C.mutedSoft : C.ink,
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: 10,
-                padding: "11px 16px",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              style={{ ...boutonSoleil, marginTop: 18 }}
             >
               {occupe ? <Loader2 size={14} className="animate-spin" /> : null}
               Écrire {aEcrire.length} bulletin{aEcrire.length > 1 ? "s" : ""} dans la base
             </button>
           </>
         )}
-      </div>
-    </div>
+    </section>
   );
 }

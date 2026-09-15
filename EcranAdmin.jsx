@@ -1,6 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Loader2, Upload } from "lucide-react";
-import { C, POLICE_TITRE, estVide, formaterFcfa, nomDuMois } from "./theme.js";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import {
+  C,
+  POLICE_CHIFFRE,
+  POLICE_TEXTE,
+  POLICE_TITRE,
+  carteVerre,
+  estVide,
+  etiquetteChamp,
+  filetLumineux,
+  formaterFcfa,
+  montantSeul,
+  nomDuMois,
+  selectSombre,
+  titreSection,
+  tuileVerre,
+} from "./theme.js";
 import { supaRest } from "./supabase.js";
 import GraphiqueMasse from "./GraphiqueMasse.jsx";
 
@@ -16,24 +31,25 @@ function nombre(valeur) {
 
 function Tuile({ label, valeur, note }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${C.border}`,
-        borderRadius: 12,
-        padding: "12px 14px",
-        background: C.surface,
-      }}
-    >
-      <div style={{ fontSize: 11.5, color: C.mutedSoft, lineHeight: 1.35 }}>{label}</div>
-      <div className="disp" style={{ fontSize: 19, fontWeight: 600, color: C.text, marginTop: 4 }}>
+    <div style={tuileVerre}>
+      <div style={{ ...etiquetteChamp, marginBottom: 7 }}>{label}</div>
+      <div
+        style={{
+          fontFamily: POLICE_CHIFFRE,
+          fontSize: 17,
+          fontWeight: 500,
+          color: C.encre,
+          letterSpacing: "-0.01em",
+        }}
+      >
         {valeur}
       </div>
-      {note && <div style={{ fontSize: 11, color: C.mutedSoft, marginTop: 3 }}>{note}</div>}
+      {note && <div style={{ fontSize: 11, color: C.encre3, marginTop: 4 }}>{note}</div>}
     </div>
   );
 }
 
-export default function EcranAdmin({ session, onRetour, onAllerImport }) {
+export default function EcranAdmin({ session }) {
   const [lignes, setLignes] = useState(null);
   const [erreur, setErreur] = useState(null);
 
@@ -91,7 +107,10 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
   }, [vueAnnee]);
 
   const projets = useMemo(
-    () => [...new Set(vueAnnee.map((l) => l.projet).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr")),
+    () =>
+      [...new Set(vueAnnee.map((l) => l.projet).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, "fr")
+      ),
     [vueAnnee]
   );
 
@@ -101,8 +120,7 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
   const vuePerimetre = useMemo(
     () =>
       vueAnnee.filter(
-        (l) =>
-          (agent === TOUS || l.profil_id === agent) && (projet === TOUS || l.projet === projet)
+        (l) => (agent === TOUS || l.profil_id === agent) && (projet === TOUS || l.projet === projet)
       ),
     [vueAnnee, agent, projet]
   );
@@ -144,98 +162,30 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
     null
   );
 
-  const styleSelect = {
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: 10,
-    padding: "9px 12px",
-    fontSize: 13.5,
-    color: C.text,
-    outline: "none",
-    maxWidth: 230,
-  };
-
-  const titreSection = {
-    fontFamily: POLICE_TITRE,
-    fontSize: 15,
-    fontWeight: 600,
-    color: C.text,
-    marginTop: 26,
-  };
-
-  const cadre = (contenu) => (
-    <div style={{ background: C.canvas, minHeight: "100vh", padding: "22px 16px 40px" }}>
-      <div
-        style={{
-          maxWidth: 1040,
-          margin: "0 auto",
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: 18,
-          padding: "26px 26px 22px",
-          boxShadow: "0 8px 28px -18px rgba(18,22,31,0.35)",
-        }}
-      >
-        <div className="flex items-center justify-between" style={{ gap: 12, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={onRetour}
-            className="flex items-center gap-2"
-            style={{
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              fontSize: 12.5,
-              color: C.muted,
-            }}
-          >
-            <ArrowLeft size={14} /> Retour à mon salaire
-          </button>
-          <button
-            type="button"
-            onClick={onAllerImport}
-            className="flex items-center gap-2"
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 10,
-              padding: "8px 12px",
-              fontSize: 12.5,
-              color: C.muted,
-            }}
-          >
-            <Upload size={13} /> Importer un classeur
-          </button>
-        </div>
-        {contenu}
-      </div>
-    </div>
-  );
-
   if (erreur) {
-    return cadre(
+    return (
       <div
         className="flex items-start gap-2"
         style={{
-          marginTop: 18,
-          background: C.redSoft,
-          color: C.red,
-          borderRadius: 10,
-          padding: "10px 12px",
-          fontSize: 12.5,
+          ...carteVerre,
+          borderColor: "rgba(255, 129, 115, 0.35)",
+          padding: "16px 18px",
+          color: C.baisse,
+          fontSize: 13,
+          lineHeight: 1.55,
         }}
       >
-        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+        <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
         Impossible de lire les bulletins : {erreur}
       </div>
     );
   }
 
   if (lignes === null) {
-    return cadre(
+    return (
       <div
         className="flex items-center gap-2"
-        style={{ marginTop: 18, color: C.muted, fontSize: 13 }}
+        style={{ ...carteVerre, padding: "18px 20px", color: C.encre3, fontSize: 13 }}
       >
         <Loader2 size={16} className="animate-spin" /> Chargement des bulletins…
       </div>
@@ -243,20 +193,18 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
   }
 
   if (!lignes.length) {
-    return cadre(
-      <>
-        <div className="disp" style={{ fontSize: 21, fontWeight: 600, color: C.text, marginTop: 14 }}>
-          Tableau de bord
-        </div>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
+    return (
+      <div style={{ ...carteVerre, padding: "26px 26px 24px" }}>
+        <div style={{ ...titreSection, fontSize: 19 }}>Tableau de bord</div>
+        <p style={{ fontSize: 13, color: C.encre2, marginTop: 10, lineHeight: 1.6 }}>
           Aucun bulletin n’est encore enregistré. Importez un classeur pour voir la masse salariale
           apparaître ici.
         </p>
-      </>
+      </div>
     );
   }
 
-  const perimetreLibelle = [
+  const perimetre = [
     agent === TOUS ? null : agents.find(([id]) => id === agent)?.[1],
     projet === TOUS ? null : projet,
     mois === TOUS ? `${anneeCourante} entière` : `${nomDuMois(Number(mois))} ${anneeCourante}`,
@@ -264,29 +212,20 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
     .filter(Boolean)
     .join(" · ");
 
-  return cadre(
-    <>
-      <div className="disp" style={{ fontSize: 21, fontWeight: 600, color: C.text, marginTop: 14 }}>
-        Tableau de bord
-      </div>
-      <p style={{ fontSize: 12.5, color: C.muted, marginTop: 6 }}>
-        {lignes.length} bulletin{lignes.length > 1 ? "s" : ""} enregistré
-        {lignes.length > 1 ? "s" : ""}
-        {dernierImport
-          ? ` — dernier import le ${new Date(dernierImport).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}`
-          : ""}
-        .
-      </p>
+  const champFiltre = (libelle, contenu) => (
+    <label>
+      <div style={etiquetteChamp}>{libelle}</div>
+      {contenu}
+    </label>
+  );
 
+  return (
+    <>
       {/* Une seule rangee de filtres, au-dessus de tout ce qu'elle cadre. */}
-      <div className="flex" style={{ gap: 12, flexWrap: "wrap", margin: "18px 0 20px" }}>
-        {annees.length > 1 && (
-          <label style={{ fontSize: 11.5, color: C.mutedSoft }}>
-            <div style={{ marginBottom: 5 }}>Année</div>
+      <div className="flex" style={{ gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+        {annees.length > 1 &&
+          champFiltre(
+            "Année",
             <select
               value={anneeCourante}
               onChange={(e) => {
@@ -295,7 +234,7 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
                 setAgent(TOUS);
                 setProjet(TOUS);
               }}
-              style={styleSelect}
+              style={selectSombre}
             >
               {annees.map((a) => (
                 <option key={a} value={a}>
@@ -303,12 +242,11 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
                 </option>
               ))}
             </select>
-          </label>
-        )}
+          )}
 
-        <label style={{ fontSize: 11.5, color: C.mutedSoft }}>
-          <div style={{ marginBottom: 5 }}>Mois</div>
-          <select value={mois} onChange={(e) => setMois(e.target.value)} style={styleSelect}>
+        {champFiltre(
+          "Mois",
+          <select value={mois} onChange={(e) => setMois(e.target.value)} style={selectSombre}>
             <option value={TOUS}>Tous les mois</option>
             {points.map((p) => (
               <option key={p.mois} value={p.mois}>
@@ -316,11 +254,11 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
               </option>
             ))}
           </select>
-        </label>
+        )}
 
-        <label style={{ fontSize: 11.5, color: C.mutedSoft }}>
-          <div style={{ marginBottom: 5 }}>Agent</div>
-          <select value={agent} onChange={(e) => setAgent(e.target.value)} style={styleSelect}>
+        {champFiltre(
+          "Agent",
+          <select value={agent} onChange={(e) => setAgent(e.target.value)} style={selectSombre}>
             <option value={TOUS}>Tous les agents ({agents.length})</option>
             {agents.map(([id, nom]) => (
               <option key={id} value={id}>
@@ -328,12 +266,12 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
               </option>
             ))}
           </select>
-        </label>
+        )}
 
-        {projets.length > 1 && (
-          <label style={{ fontSize: 11.5, color: C.mutedSoft }}>
-            <div style={{ marginBottom: 5 }}>Projet</div>
-            <select value={projet} onChange={(e) => setProjet(e.target.value)} style={styleSelect}>
+        {projets.length > 1 &&
+          champFiltre(
+            "Projet",
+            <select value={projet} onChange={(e) => setProjet(e.target.value)} style={selectSombre}>
               <option value={TOUS}>Tous les projets</option>
               {projets.map((p) => (
                 <option key={p} value={p}>
@@ -341,34 +279,68 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
                 </option>
               ))}
             </select>
-          </label>
-        )}
+          )}
       </div>
 
       {/* Le chiffre principal : ce que la selection coute. */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12.5, color: C.muted }}>
-          {agent === TOUS ? "Masse salariale" : "Total payé"} — {perimetreLibelle}
+      <section
+        style={{ ...carteVerre, position: "relative", padding: "26px 26px 24px", overflow: "hidden" }}
+      >
+        <div style={filetLumineux} />
+        <div className="flex items-start justify-between" style={{ gap: 18, flexWrap: "wrap" }}>
+          <div>
+            <div style={etiquetteChamp}>
+              {agent === TOUS ? "Masse salariale" : "Total payé"} — {perimetre}
+            </div>
+            <div
+              style={{
+                fontFamily: POLICE_TITRE,
+                fontSize: "clamp(2.2rem, 7vw, 3.6rem)",
+                fontWeight: 700,
+                letterSpacing: "-0.035em",
+                lineHeight: 1,
+                color: C.encre,
+                marginTop: 6,
+              }}
+            >
+              {montantSeul(masse)}
+              <span
+                style={{
+                  fontSize: "0.34em",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  color: C.soleil,
+                  marginLeft: 11,
+                  verticalAlign: "0.42em",
+                }}
+              >
+                FCFA
+              </span>
+            </div>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.encre3, textAlign: "right", lineHeight: 1.6 }}>
+            {lignes.length} bulletin{lignes.length > 1 ? "s" : ""} en base
+            {dernierImport && (
+              <>
+                <br />
+                dernier import le{" "}
+                {new Date(dernierImport).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </>
+            )}
+          </div>
         </div>
-        <div
-          className="disp"
-          style={{
-            fontSize: "clamp(2rem, 6.5vw, 2.9rem)",
-            fontWeight: 700,
-            color: C.text,
-            lineHeight: 1.08,
-            marginTop: 2,
-          }}
-        >
-          {formaterFcfa(masse)}
-        </div>
-      </div>
+      </section>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit, minmax(168px, 1fr))",
+          gap: 12,
+          marginTop: 14,
         }}
       >
         <Tuile
@@ -388,128 +360,142 @@ export default function EcranAdmin({ session, onRetour, onAllerImport }) {
         />
       </div>
 
-      <div style={titreSection}>
-        {agent === TOUS ? "Masse salariale par mois" : "Total payé par mois"}
-      </div>
-      <div style={{ fontSize: 12.5, color: C.muted, margin: "4px 0 10px" }}>
-        {anneeCourante}, en FCFA
-        {projet === TOUS ? "" : `, projet ${projet}`}
-        {mois === TOUS ? "" : `. Le mois sélectionné est en gras.`}
-      </div>
-      {points.length ? (
-        <GraphiqueMasse
-          points={points}
-          moisSelectionne={mois === TOUS ? null : Number(mois)}
-          etiquette={agent === TOUS ? "Masse salariale par mois" : "Total payé par mois"}
-        />
-      ) : (
-        <div style={{ fontSize: 12.5, color: C.muted }}>
-          Aucun total renseigné pour cette sélection.
+      <section style={{ ...carteVerre, padding: "22px 24px 18px", marginTop: 14 }}>
+        <div style={titreSection}>
+          {agent === TOUS ? "Masse salariale par mois" : "Total payé par mois"}
         </div>
-      )}
+        <div style={{ fontSize: 12.5, color: C.encre3, margin: "5px 0 14px" }}>
+          {anneeCourante}, en FCFA
+          {projet === TOUS ? "" : `, projet ${projet}`}
+          {mois === TOUS ? "" : ". Le mois sélectionné est en gras."}
+        </div>
+        {points.length ? (
+          <GraphiqueMasse
+            points={points}
+            moisSelectionne={mois === TOUS ? null : Number(mois)}
+            etiquette={agent === TOUS ? "Masse salariale par mois" : "Total payé par mois"}
+          />
+        ) : (
+          <div style={{ fontSize: 12.5, color: C.encre3 }}>
+            Aucun total renseigné pour cette sélection.
+          </div>
+        )}
+      </section>
 
-      <div style={titreSection}>
-        {vueFiltree.length} bulletin{vueFiltree.length > 1 ? "s" : ""} dans la sélection
-      </div>
-      <div style={{ overflowX: "auto", maxHeight: 460, overflowY: "auto", marginTop: 8 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-          <thead>
-            <tr style={{ background: C.canvas, color: C.muted, textAlign: "left" }}>
-              {[
-                "Agent",
-                "Login",
-                "Mois",
-                "Projet",
-                "Salaire de base",
-                "Net à payer",
-                "Prime / bonus",
-                "Prime coach",
-                "Total du mois",
-              ].map((entete) => (
-                <th
-                  key={entete}
-                  style={{
-                    padding: "9px 11px",
-                    fontWeight: 600,
-                    borderBottom: `1px solid ${C.border}`,
-                    whiteSpace: "nowrap",
-                    position: "sticky",
-                    top: 0,
-                    background: C.canvas,
-                  }}
-                >
-                  {entete}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
-            {[...vueFiltree]
-              .sort((a, b) => a.mois - b.mois || a.nom.localeCompare(b.nom, "fr"))
-              .map((l) => (
-                <tr key={`${l.profil_id}-${l.annee}-${l.mois}`} style={{ color: C.text }}>
-                  <td style={{ padding: "9px 11px", borderBottom: `1px solid ${C.borderSoft}` }}>
-                    {l.nom}
-                  </td>
-                  <td
+      <section style={{ ...carteVerre, padding: "22px 24px 20px", marginTop: 14 }}>
+        <div style={titreSection}>
+          {vueFiltree.length} bulletin{vueFiltree.length > 1 ? "s" : ""} dans la sélection
+        </div>
+        <div style={{ overflowX: "auto", maxHeight: 460, overflowY: "auto", marginTop: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                {[
+                  ["Agent", "left"],
+                  ["Login", "left"],
+                  ["Mois", "left"],
+                  ["Projet", "left"],
+                  ["Salaire de base", "right"],
+                  ["Net à payer", "right"],
+                  ["Prime / bonus", "right"],
+                  ["Prime coach", "right"],
+                  ["Total du mois", "right"],
+                ].map(([entete, alignement]) => (
+                  <th
+                    key={entete}
                     style={{
-                      padding: "9px 11px",
-                      borderBottom: `1px solid ${C.borderSoft}`,
-                      color: C.muted,
-                    }}
-                  >
-                    {l.login}
-                  </td>
-                  <td
-                    style={{
-                      padding: "9px 11px",
-                      borderBottom: `1px solid ${C.borderSoft}`,
+                      ...etiquetteChamp,
+                      marginBottom: 0,
+                      textAlign: alignement,
+                      padding: "0 12px 9px",
+                      borderBottom: `1px solid ${C.bordure}`,
                       whiteSpace: "nowrap",
+                      position: "sticky",
+                      top: 0,
+                      background: C.carte,
                     }}
                   >
-                    {nomDuMois(l.mois)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "9px 11px",
-                      borderBottom: `1px solid ${C.borderSoft}`,
-                      color: C.muted,
-                    }}
-                  >
-                    {l.projet || "—"}
-                  </td>
-                  {[l.salaire_base, l.net_a_payer, l.prime_montant, l.prime_coach, l.total_mois].map(
-                    (valeur, i) => (
+                    {entete}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody style={{ fontFamily: POLICE_CHIFFRE }}>
+              {[...vueFiltree]
+                .sort((a, b) => a.mois - b.mois || a.nom.localeCompare(b.nom, "fr"))
+                .map((l) => (
+                  <tr key={`${l.profil_id}-${l.annee}-${l.mois}`}>
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.bordure}`,
+                        fontFamily: POLICE_TEXTE,
+                        color: C.encre,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {l.nom}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.bordure}`,
+                        color: C.encre3,
+                      }}
+                    >
+                      {l.login}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.bordure}`,
+                        color: C.encre2,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {nomDuMois(l.mois)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 12px",
+                        borderBottom: `1px solid ${C.bordure}`,
+                        color: C.encre3,
+                      }}
+                    >
+                      {l.projet || "—"}
+                    </td>
+                    {[
+                      l.salaire_base,
+                      l.net_a_payer,
+                      l.prime_montant,
+                      l.prime_coach,
+                      l.total_mois,
+                    ].map((valeur, i) => (
                       <td
                         key={i}
                         style={{
-                          padding: "9px 11px",
-                          borderBottom: `1px solid ${C.borderSoft}`,
+                          padding: "10px 12px",
+                          borderBottom: `1px solid ${C.bordure}`,
+                          textAlign: "right",
                           whiteSpace: "nowrap",
+                          color: estVide(valeur) ? C.encre3 : i === 4 ? C.encre : C.encre2,
+                          fontWeight: i === 4 ? 500 : 400,
                         }}
                       >
                         {formaterFcfa(valeur)}
                       </td>
-                    )
-                  )}
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+                    ))}
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      <div
-        style={{
-          fontSize: 11.5,
-          color: C.mutedSoft,
-          marginTop: 22,
-          paddingTop: 14,
-          borderTop: `1px solid ${C.borderSoft}`,
-        }}
-      >
+      <p style={{ fontSize: 11.5, color: C.encre3, marginTop: 20, lineHeight: 1.6 }}>
         Vue réservée aux super administrateurs. Un agent, lui, ne peut lire que ses propres
         bulletins — c’est la base de données qui l’impose, pas cet écran.
-      </div>
+      </p>
     </>
   );
 }

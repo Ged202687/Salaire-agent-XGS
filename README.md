@@ -8,6 +8,19 @@ Auréo**, et les bulletins sont lus dans le même projet Supabase qu'Auréo, tab
 `bulletins_salaire`. Un agent ne voit que ses propres lignes ; seul un
 `super_admin` importe le classeur et voit tout le monde.
 
+## La maquette
+
+Bleu nuit XGS et jaune soleil du logo, comme l'écran de connexion d'Auréo :
+surfaces de verre, chiffres éditoriaux en Space Grotesk, montants en IBM Plex
+Mono pour que les colonnes s'alignent. Les jetons vivent dans
+[`theme.js`](theme.js), personne ne code une couleur en dur.
+
+Une règle à ne pas franchir : **le jaune est un accent d'interface, jamais une
+couleur de donnée.** Il échoue à la bande de clarté du validateur de palette, donc
+il mentirait sur un trait fin. La seule couleur de série est le bleu `#3987E5`,
+validée sur la surface des cartes — bande de clarté, plancher de chroma,
+contraste. Le PDF, lui, reste blanc : c'est du papier.
+
 ## Mise en route
 
 ```bash
@@ -45,6 +58,25 @@ agent est sélectionné, l'écran parle de « total payé » et non de masse sal
 Cet écran ne fait que lire. Ce qu'il montre, c'est ce que la base accepte de lui
 donner : un agent qui l'atteindrait n'y verrait que ses propres lignes, la
 politique RLS s'en charge — pas l'écran.
+
+## Le bulletin PDF
+
+Depuis son écran, l'agent télécharge le mois affiché en PDF. Le document est
+construit dans le navigateur avec `pdf-lib` : texte vectoriel et sélectionnable,
+pas une capture d'écran, puisque c'est une pièce qu'on présente à une banque ou à
+un bailleur.
+
+Il porte l'en-tête XGS, l'identité de l'agent, le détail du mois avec son total
+en bandeau, puis **l'historique de l'année et son cumul** — qui s'allonge à chaque
+import. Un relevé de plusieurs mois vaut mieux qu'un mois seul pour une démarche
+administrative. Vérifié jusqu'à douze mois sur une seule page.
+
+`pdf-lib` ne descend qu'au clic : un agent qui consulte son salaire sans
+télécharger ne paie pas les 180 ko de la bibliothèque.
+
+La mention de pied — « Édité le … à partir des états transmis par le service RH »
+— est volontairement factuelle. Si le service RH veut une formule juridique
+précise, elle se change dans [`bulletinPdf.js`](bulletinPdf.js).
 
 ## Alimenter les bulletins chaque mois
 
