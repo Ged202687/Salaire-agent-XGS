@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Configuration locale de lancement (chemins propres a chaque machine)
+.claude/
