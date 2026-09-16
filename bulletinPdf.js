@@ -2,9 +2,8 @@
 // selectionnable, pas une capture d'ecran : c'est une piece qu'on presente a une
 // banque ou a un bailleur, elle doit pouvoir etre lue et copiee.
 //
-// Le document contient deux tableaux : le detail du mois demande, et
-// l'historique de l'annee avec son cumul, qui s'allonge a chaque import. Un
-// releve de trois mois a plus de valeur administrative qu'un mois seul.
+// Le document ne porte que le mois demande. L'historique de l'annee y figurait,
+// il en a ete retire : un bulletin atteste d'un mois, et rien d'autre.
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { MOIS_AFFICHE, montantSeul } from "./theme.js";
 
@@ -44,7 +43,7 @@ function moisNom(mois) {
   return MOIS_AFFICHE[mois - 1] || String(mois);
 }
 
-export async function construireBulletin({ profil, bulletin, bulletinsAnnee }) {
+export async function construireBulletin({ profil, bulletin }) {
   const doc = await PDFDocument.create();
   doc.setTitle(`Bulletin ${moisNom(bulletin.mois)} ${bulletin.annee} - ${profil.nom}`);
   doc.setSubject("Bulletin de paie");
@@ -130,7 +129,7 @@ export async function construireBulletin({ profil, bulletin, bulletinsAnnee }) {
     ["Prime coach métier", bulletin.prime_coach],
   ];
 
-  const hauteurLigne = 24;
+  const hauteurLigne = 27;
   lignes.forEach(([libelle, valeur], index) => {
     const haut = y - index * hauteurLigne;
     if (index % 2 === 0) {
@@ -166,66 +165,6 @@ export async function construireBulletin({ profil, bulletin, bulletinsAnnee }) {
     rgb(1, 1, 1)
   );
 
-  // --- historique de l'annee ---------------------------------------------
-  const historique = [...(bulletinsAnnee || [])]
-    .filter((b) => b.annee === bulletin.annee)
-    .sort((a, b) => a.mois - b.mois);
-
-  if (historique.length > 1) {
-    y -= 62;
-    ecrire(`Historique ${bulletin.annee}`, MARGE, y, 12, gras);
-    ecrireADroite(
-      `${historique.length} mois payés`,
-      MARGE + largeurUtile,
-      y,
-      9,
-      normal,
-      ENCRE_DOUCE
-    );
-    y -= 18;
-
-    ecrire("MOIS", MARGE + 10, y, 7.5, gras, ENCRE_DOUCE);
-    ecrire("SALAIRE DE BASE", MARGE + 150, y, 7.5, gras, ENCRE_DOUCE);
-    ecrire("PRIMES", MARGE + 285, y, 7.5, gras, ENCRE_DOUCE);
-    ecrireADroite("TOTAL DU MOIS", MARGE + largeurUtile - 10, y, 7.5, gras, ENCRE_DOUCE);
-    y -= 8;
-    filet(y);
-
-    let cumul = 0;
-    historique.forEach((b, index) => {
-      const haut = y - 6 - index * 20;
-      const primes = (Number(b.prime_montant) || 0) + (Number(b.prime_coach) || 0);
-      cumul += Number(b.total_mois) || 0;
-
-      const estLeMois = b.mois === bulletin.mois;
-      if (estLeMois) {
-        page.drawRectangle({
-          x: MARGE,
-          y: haut - 14,
-          width: largeurUtile,
-          height: 20,
-          color: BANDE,
-        });
-      }
-      ecrire(moisNom(b.mois), MARGE + 10, haut - 8, 9.5, estLeMois ? gras : normal);
-      ecrire(`${montantSeul(b.salaire_base)} FCFA`, MARGE + 150, haut - 8, 9.5);
-      ecrire(primes ? `${montantSeul(primes)} FCFA` : "-", MARGE + 285, haut - 8, 9.5);
-      ecrireADroite(
-        `${montantSeul(b.total_mois)} FCFA`,
-        MARGE + largeurUtile - 10,
-        haut - 8,
-        9.5,
-        estLeMois ? gras : normal
-      );
-    });
-
-    y -= 6 + historique.length * 20 + 4;
-    filet(y);
-    y -= 17;
-    ecrire(`CUMUL ${bulletin.annee}`, MARGE + 10, y, 9.5, gras);
-    ecrireADroite(`${montantSeul(cumul)} FCFA`, MARGE + largeurUtile - 10, y, 11.5, gras);
-  }
-
   // --- pied ---------------------------------------------------------------
   const edite = new Date().toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -253,8 +192,8 @@ export async function construireBulletin({ profil, bulletin, bulletinsAnnee }) {
   return doc.save();
 }
 
-export async function telechargerBulletin({ profil, bulletin, bulletinsAnnee }) {
-  const octets = await construireBulletin({ profil, bulletin, bulletinsAnnee });
+export async function telechargerBulletin({ profil, bulletin }) {
+  const octets = await construireBulletin({ profil, bulletin });
   const lien = document.createElement("a");
   const url = URL.createObjectURL(new Blob([octets], { type: "application/pdf" }));
   const identifiant = (profil.login || profil.matricule || "agent")

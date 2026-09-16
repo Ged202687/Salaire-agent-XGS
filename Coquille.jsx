@@ -43,7 +43,7 @@ export default function Coquille({
           position: "sticky",
           top: 0,
           zIndex: 5,
-          background: "rgba(3, 6, 15, 0.72)",
+          background: "rgba(16, 26, 49, 0.78)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderBottom: `1px solid ${C.bordure}`,

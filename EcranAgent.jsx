@@ -151,7 +151,7 @@ export default function EcranAgent({ profil, bulletins }) {
     setErreurPdf(null);
     try {
       const { telechargerBulletin } = await import("./bulletinPdf.js");
-      await telechargerBulletin({ profil, bulletin, bulletinsAnnee: vueAnnee });
+      await telechargerBulletin({ profil, bulletin });
     } catch (e) {
       setErreurPdf(e.message || "Le bulletin n’a pas pu être produit.");
     } finally {

@@ -9,22 +9,25 @@
 // couleur de serie est SERIE, validee sur la surface des cartes (bande de
 // clarte, plancher de chroma, contraste >= 3:1).
 export const C = {
-  // Les deux plans du fond, qui donnent la profondeur.
-  nuit: "#03060F",
-  nuitProfond: "#00040B",
+  // Les deux plans du fond, qui donnent la profondeur. Un bleu ardoise plutot
+  // qu'un presque-noir : la premiere version etait trop sombre.
+  nuit: "#16223E",
+  nuitProfond: "#101A31",
 
-  // Surfaces. CARTE est la surface de reference du validateur.
-  carte: "#0B1224",
-  carteHaute: "#121B33",
-  verre: "rgba(255, 255, 255, 0.045)",
-  verreHaut: "rgba(255, 255, 255, 0.07)",
-  bordure: "rgba(255, 255, 255, 0.09)",
-  bordureVive: "rgba(255, 255, 255, 0.18)",
+  // Surfaces. CARTE est la surface de reference du validateur : c'est la
+  // couleur effective d'une carte, soit le fond de page plus le voile de VERRE.
+  carte: "#1F2B47",
+  carteHaute: "#26355A",
+  verre: "rgba(255, 255, 255, 0.05)",
+  verreHaut: "rgba(255, 255, 255, 0.085)",
+  bordure: "rgba(255, 255, 255, 0.12)",
+  bordureVive: "rgba(255, 255, 255, 0.22)",
 
-  // Encres.
+  // Encres. ENCRE3 a ete eclaircie avec le fond : a #6E7A93 elle tombait a
+  // 3,28:1 sur la nouvelle surface, sous le seuil du petit texte.
   encre: "#FFFFFF",
   encre2: "#AEB9CE",
-  encre3: "#6E7A93",
+  encre3: "#8A97B4",
 
   // Accent de marque.
   soleil: "#FDCF4F",
@@ -33,7 +36,7 @@ export const C = {
   // Donnee.
   serie: "#3987E5",
   serieDoux: "rgba(57, 135, 229, 0.18)",
-  grille: "rgba(255, 255, 255, 0.07)",
+  grille: "rgba(255, 255, 255, 0.11)",
 
   // Etats. La fleche et le signe portent le sens ; la couleur le confirme.
   hausse: "#4FD48C",
@@ -54,8 +57,8 @@ export const POLICE_CHIFFRE = '"IBM Plex Mono", ui-monospace, monospace';
 // Le fond de page, repris de l'ecran de connexion pour que l'entree dans
 // l'outil ne change pas de monde.
 export const FOND_NUIT =
-  `radial-gradient(1100px 620px at 14% -8%, #1B2559 0%, rgba(27, 37, 89, 0) 62%),` +
-  `radial-gradient(900px 520px at 88% 4%, #123A6B 0%, rgba(18, 58, 107, 0) 58%),` +
+  `radial-gradient(1100px 620px at 14% -8%, #2E3D78 0%, rgba(46, 61, 120, 0) 62%),` +
+  `radial-gradient(900px 520px at 88% 4%, #1B5188 0%, rgba(27, 81, 136, 0) 58%),` +
   `linear-gradient(180deg, ${C.nuit} 0%, ${C.nuitProfond} 100%)`;
 
 // --- briques de style partagees -------------------------------------------

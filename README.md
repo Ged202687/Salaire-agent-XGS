@@ -10,7 +10,8 @@ Auréo**, et les bulletins sont lus dans le même projet Supabase qu'Auréo, tab
 
 ## La maquette
 
-Bleu nuit XGS et jaune soleil du logo, comme l'écran de connexion d'Auréo :
+Bleu ardoise XGS et jaune soleil du logo, dans la lignée de l'écran de connexion
+d'Auréo :
 surfaces de verre, chiffres éditoriaux en Space Grotesk, montants en IBM Plex
 Mono pour que les colonnes s'alignent. Les jetons vivent dans
 [`theme.js`](theme.js), personne ne code une couleur en dur.
@@ -20,6 +21,10 @@ couleur de donnée.** Il échoue à la bande de clarté du validateur de palette
 il mentirait sur un trait fin. La seule couleur de série est le bleu `#3987E5`,
 validée sur la surface des cartes — bande de clarté, plancher de chroma,
 contraste. Le PDF, lui, reste blanc : c'est du papier.
+
+Si le fond bouge, deux choses se revalident : la couleur de série contre la
+nouvelle surface, et le contraste des encres. En éclaircissant le fond, `encre3`
+est tombée à 3,28:1 et a dû être éclaircie avec lui.
 
 ## Mise en route
 
@@ -66,10 +71,9 @@ construit dans le navigateur avec `pdf-lib` : texte vectoriel et sélectionnable
 pas une capture d'écran, puisque c'est une pièce qu'on présente à une banque ou à
 un bailleur.
 
-Il porte l'en-tête XGS, l'identité de l'agent, le détail du mois avec son total
-en bandeau, puis **l'historique de l'année et son cumul** — qui s'allonge à chaque
-import. Un relevé de plusieurs mois vaut mieux qu'un mois seul pour une démarche
-administrative. Vérifié jusqu'à douze mois sur une seule page.
+Il porte l'en-tête XGS, l'identité de l'agent, et le détail du mois avec son
+total en bandeau. **Rien d'autre** : un bulletin atteste d'un mois, pas d'une
+année. L'historique y a figuré un temps, il en a été retiré.
 
 `pdf-lib` ne descend qu'au clic : un agent qui consulte son salaire sans
 télécharger ne paie pas les 180 ko de la bibliothèque.

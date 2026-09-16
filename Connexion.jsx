@@ -38,7 +38,7 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "radial-gradient(circle at 18% 20%, #1B2559 0%, #000B53 45%, #00040B 100%)",
+        background: "radial-gradient(circle at 18% 20%, #32427F 0%, #17275E 45%, #101A31 100%)",
         position: "relative",
         overflow: "hidden",
         padding: 20,
