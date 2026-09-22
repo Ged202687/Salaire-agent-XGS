@@ -1,6 +1,9 @@
-// Fabrique le bulletin PDF telecharge par l'agent. Texte vectoriel et
-// selectionnable, pas une capture d'ecran : c'est une piece qu'on presente a une
-// banque ou a un bailleur, elle doit pouvoir etre lue et copiee.
+// Fabrique le bulletin de prime de stage telecharge par l'agent. Texte vectoriel
+// et selectionnable, pas une capture d'ecran : c'est une piece qu'on presente, et
+// elle doit pouvoir etre lue et copiee.
+//
+// Le pied porte, en gras et avant tout le reste, la mention qui qualifie la
+// piece : etablie a titre informatif, elle ne constitue pas un document officiel.
 //
 // Le document ne porte que le mois demande. L'historique de l'annee y figurait,
 // il en a ete retire : un bulletin atteste d'un mois, et rien d'autre.
@@ -45,8 +48,10 @@ function moisNom(mois) {
 
 export async function construireBulletin({ profil, bulletin }) {
   const doc = await PDFDocument.create();
-  doc.setTitle(`Bulletin ${moisNom(bulletin.mois)} ${bulletin.annee} - ${profil.nom}`);
-  doc.setSubject("Bulletin de paie");
+  doc.setTitle(
+    `Bulletin de prime de stage ${moisNom(bulletin.mois)} ${bulletin.annee} - ${profil.nom}`
+  );
+  doc.setSubject("Bulletin de prime de stage - document informatif");
   doc.setProducer("Mon salaire - Xperience Global Services");
   doc.setCreationDate(new Date());
 
@@ -86,7 +91,7 @@ export async function construireBulletin({ profil, bulletin }) {
   }
 
   ecrire("XPERIENCE GLOBAL SERVICES", MARGE + 58, y - 14, 11, gras);
-  ecrire("Bulletin de paie", MARGE + 58, y - 30, 9, normal, ENCRE_DOUCE);
+  ecrire("Bulletin de prime de stage", MARGE + 58, y - 30, 9, normal, ENCRE_DOUCE);
   ecrireADroite(`${moisNom(bulletin.mois)} ${bulletin.annee}`, MARGE + largeurUtile, y - 16, 16, gras);
   ecrireADroite(
     `Réf. ${profil.login || profil.matricule || profil.id} · ${bulletin.annee}-${String(bulletin.mois).padStart(2, "0")}`,
@@ -171,11 +176,21 @@ export async function construireBulletin({ profil, bulletin }) {
     month: "long",
     year: "numeric",
   });
-  filet(MARGE + 46, FILET);
+  filet(MARGE + 58, FILET);
+  // La mention vient en premier et en gras : c'est elle qui qualifie la piece,
+  // elle ne doit pas se lire apres coup.
+  ecrire(
+    "Document établi à titre informatif. Il ne constitue pas un document officiel.",
+    MARGE,
+    MARGE + 44,
+    8.5,
+    gras,
+    ENCRE
+  );
   ecrire(
     `Édité le ${edite} depuis l'outil Mon salaire, à partir des états transmis par le service RH.`,
     MARGE,
-    MARGE + 32,
+    MARGE + 31,
     8,
     normal,
     ENCRE_DOUCE
@@ -183,7 +198,7 @@ export async function construireBulletin({ profil, bulletin }) {
   ecrire(
     "Pour toute question ou contestation sur un montant, s'adresser au service RH.",
     MARGE,
-    MARGE + 20,
+    MARGE + 19,
     8,
     normal,
     ENCRE_DOUCE
@@ -201,7 +216,7 @@ export async function telechargerBulletin({ profil, bulletin }) {
     .replace(/[^a-z0-9]+/g, "-");
 
   lien.href = url;
-  lien.download = `bulletin-${identifiant}-${bulletin.annee}-${String(bulletin.mois).padStart(2, "0")}.pdf`;
+  lien.download = `prime-stage-${identifiant}-${bulletin.annee}-${String(bulletin.mois).padStart(2, "0")}.pdf`;
   document.body.appendChild(lien);
   lien.click();
   document.body.removeChild(lien);

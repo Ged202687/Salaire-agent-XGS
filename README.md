@@ -64,7 +64,7 @@ Cet écran ne fait que lire. Ce qu'il montre, c'est ce que la base accepte de lu
 donner : un agent qui l'atteindrait n'y verrait que ses propres lignes, la
 politique RLS s'en charge — pas l'écran.
 
-## Le bulletin PDF
+## Le bulletin de prime de stage (PDF)
 
 Depuis son écran, l'agent télécharge le mois affiché en PDF. Le document est
 construit dans le navigateur avec `pdf-lib` : texte vectoriel et sélectionnable,
@@ -75,12 +75,16 @@ Il porte l'en-tête XGS, l'identité de l'agent, et le détail du mois avec son
 total en bandeau. **Rien d'autre** : un bulletin atteste d'un mois, pas d'une
 année. L'historique y a figuré un temps, il en a été retiré.
 
+Le pied s'ouvre, en gras, sur ce qui qualifie la pièce : « Document établi à
+titre informatif. Il ne constitue pas un document officiel. » La mention vient
+avant la date d'édition, pas après — elle ne doit pas se lire une fois le
+document déjà pris pour ce qu'il n'est pas.
+
 `pdf-lib` ne descend qu'au clic : un agent qui consulte son salaire sans
 télécharger ne paie pas les 180 ko de la bibliothèque.
 
-La mention de pied — « Édité le … à partir des états transmis par le service RH »
-— est volontairement factuelle. Si le service RH veut une formule juridique
-précise, elle se change dans [`bulletinPdf.js`](bulletinPdf.js).
+Les formulations du pied se changent dans [`bulletinPdf.js`](bulletinPdf.js) si
+le service RH en veut d'autres.
 
 ## Alimenter les bulletins chaque mois
 
