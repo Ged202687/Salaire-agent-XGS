@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 // Meme projet Supabase qu'Aureo : l'outil ne cree aucun compte et ne gere aucun
 // mot de passe. On se connecte avec l'identifiant Aureo, et la table profils dit
 // qui est l'agent.
@@ -5,19 +7,6 @@ const SUPABASE_URL = "https://fipvndiueabrehsmqxth.supabase.co";
 const SUPABASE_KEY = "sb_publishable_aNR2zGeJS9UgYLnvsvtVaw_tItHLC10";
 const SUPABASE_ANON_JWT =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpcHZuZGl1ZWFicmVoc21xeHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTA0MjUsImV4cCI6MjEwMjcyNjQyNX0.PTPShNDncsT793-fBMP-Ko2gk3trOGtuwWYQ3L450j8";
-
-export async function supaAuth(path, body) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error_description || data.msg || data.error || "Erreur d'authentification");
-  }
-  return data;
-}
 
 export async function supaRest(path, { method = "GET", accessToken, body, prefer } = {}) {
   const entetes = {
@@ -53,37 +42,34 @@ export async function rpc(nom, accessToken, args) {
 
 export { SUPABASE_ANON_JWT };
 
-// --- Session conservee entre deux rechargements de page ---------------------
-const CLE_SESSION = "salaire-xgs-session";
+// --- Session partagee avec le portail XGS -----------------------------------
+// La session est gardee par le client officiel Supabase, sous sa cle standard
+// (sb-<projet>-auth-token), la meme que le portail, Auréo, Méridien et Horizon.
+// Servi a la meme adresse que le portail (portail/salaire/), l'outil retrouve
+// donc la connexion faite sur le portail.
+//
+// Le client renouvelle aussi le jeton lui-meme, en se coordonnant entre les
+// onglets et les outils ouverts : deux outils qui renouvelleraient chacun la
+// meme session seraient pris par Supabase pour un vol de jeton, et l'agent
+// serait deconnecte partout.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+});
 
-export function lireSessionStockee() {
-  try {
-    const brut = sessionStorage.getItem(CLE_SESSION);
-    return brut ? JSON.parse(brut) : null;
-  } catch {
-    return null;
-  }
+// Mon salaire ouvert depuis le portail plutot qu'a sa propre adresse : la
+// connexion et la deconnexion se font alors sur le portail.
+export const SOUS_PORTAIL =
+  typeof window !== "undefined" && /^\/salaire(\/|$)/.test(window.location.pathname);
+
+export function allerAuPortail() {
+  window.location.replace(`/?retour=${encodeURIComponent(window.location.pathname)}`);
 }
 
-export function ecrireSessionStockee(session) {
+// Ancienne session de l'outil (propre a l'onglet), effacee a la premiere
+// ouverture apres la mise a jour.
+export function effacerAncienneSession() {
   try {
-    sessionStorage.setItem(
-      CLE_SESSION,
-      JSON.stringify({
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-        userId: session.user.id,
-      })
-    );
-  } catch {
-    // Navigation privee ou stockage refuse : la session vit alors le temps de
-    // l'onglet, ce qui est acceptable pour une consultation de bulletin.
-  }
-}
-
-export function effacerSessionStockee() {
-  try {
-    sessionStorage.removeItem(CLE_SESSION);
+    sessionStorage.removeItem("salaire-xgs-session");
   } catch {
     // rien a faire
   }

@@ -10,12 +10,12 @@ import {
   carteVerre,
 } from "./theme.js";
 import {
+  SOUS_PORTAIL,
   SUPABASE_ANON_JWT,
-  effacerSessionStockee,
-  ecrireSessionStockee,
-  lireSessionStockee,
+  allerAuPortail,
+  effacerAncienneSession,
   rpc,
-  supaAuth,
+  supabase,
   supaRest,
 } from "./supabase.js";
 import Connexion from "./Connexion.jsx";
@@ -82,38 +82,62 @@ export default function App() {
   const [erreurBulletins, setErreurBulletins] = useState(null);
   const [vue, setVue] = useState("salaire"); // salaire | admin | import
 
-  // --- reprise d'une session apres un rechargement de page ------------------
-  useEffect(() => {
-    (async () => {
-      const stockee = lireSessionStockee();
-      if (!stockee?.refreshToken) {
-        setRestauration(false);
-        return;
-      }
-      try {
-        const rafraichie = await supaAuth("token?grant_type=refresh_token", {
-          refresh_token: stockee.refreshToken,
-        });
-        const profils = await supaRest(`profils?select=*&id=eq.${rafraichie.user.id}`, {
-          accessToken: rafraichie.access_token,
-        });
-        const profil = profils?.[0];
-        if (!profil || profil.actif === false) throw new Error("session invalide");
+  // --- session Supabase -> session de l'outil (profil, compte actif) --------
+  const ouvrirSession = useCallback(async (s) => {
+    const profils = await supaRest(`profils?select=*&id=eq.${s.user.id}`, {
+      accessToken: s.access_token,
+    });
+    const profil = profils?.[0];
+    if (!profil) throw new Error("Aucun profil rattaché à ce compte.");
+    if (profil.actif === false) {
+      throw new Error("Ce compte a été désactivé. Contactez un administrateur.");
+    }
+    return { accessToken: s.access_token, refreshToken: s.refresh_token, user: s.user, profil };
+  }, []);
 
-        const reprise = {
-          accessToken: rafraichie.access_token,
-          refreshToken: rafraichie.refresh_token,
-          user: rafraichie.user,
-          profil,
-        };
-        setSession(reprise);
-        ecrireSessionStockee(reprise);
-      } catch {
-        effacerSessionStockee();
-      } finally {
-        setRestauration(false);
+  // --- reprise de la session : celle du portail ou d'un autre outil ---------
+  useEffect(() => {
+    effacerAncienneSession();
+    (async () => {
+      try {
+        const {
+          data: { session: s },
+        } = await supabase.auth.getSession();
+        if (s) {
+          setSession(await ouvrirSession(s));
+        } else if (SOUS_PORTAIL) {
+          allerAuPortail();
+          return;
+        }
+      } catch (e) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+        if (SOUS_PORTAIL) {
+          allerAuPortail();
+          return;
+        }
+        setErreurAuth(e.message);
       }
+      setRestauration(false);
     })();
+  }, [ouvrirSession]);
+
+  // Jeton renouvele (ici ou par un autre outil ouvert), ou deconnexion faite
+  // depuis un autre outil : on suit.
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((evenement, s) => {
+      if (evenement === "TOKEN_REFRESHED" && s) {
+        setSession((prec) =>
+          prec ? { ...prec, accessToken: s.access_token, refreshToken: s.refresh_token } : prec
+        );
+      } else if (evenement === "SIGNED_OUT") {
+        setSession(null);
+        setBulletins(null);
+        if (SOUS_PORTAIL) allerAuPortail();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // --- connexion : l'identifiant Aureo, rien d'autre ------------------------
@@ -124,24 +148,18 @@ export default function App() {
       const email = await rpc("email_from_login", SUPABASE_ANON_JWT, { p_login: login.trim() });
       if (!email) throw new Error("Identifiant inconnu.");
 
-      const jetons = await supaAuth("token?grant_type=password", { email, password: motDePasse });
-      const profils = await supaRest(`profils?select=*&id=eq.${jetons.user.id}`, {
-        accessToken: jetons.access_token,
-      });
-      const profil = profils?.[0];
-      if (!profil) throw new Error("Aucun profil rattaché à ce compte.");
-      if (profil.actif === false) {
-        throw new Error("Ce compte a été désactivé. Contactez un administrateur.");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
+      if (error) {
+        throw new Error(
+          error.message === "Invalid login credentials" ? "Identifiant ou mot de passe incorrect." : error.message
+        );
       }
-
-      const nouvelle = {
-        accessToken: jetons.access_token,
-        refreshToken: jetons.refresh_token,
-        user: jetons.user,
-        profil,
-      };
-      setSession(nouvelle);
-      ecrireSessionStockee(nouvelle);
+      try {
+        setSession(await ouvrirSession(data.session));
+      } catch (e) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+        throw e;
+      }
     } catch (e) {
       setErreurAuth(e.message);
     } finally {
@@ -149,12 +167,15 @@ export default function App() {
     }
   }
 
-  function deconnexion() {
-    effacerSessionStockee();
+  // Deconnexion unique : elle ferme aussi la session du portail et des autres
+  // outils ouverts a la meme adresse.
+  async function deconnexion() {
+    await supabase.auth.signOut().catch(() => {});
     setSession(null);
     setBulletins(null);
     setErreurBulletins(null);
     setVue("salaire");
+    if (SOUS_PORTAIL) window.location.replace("/");
   }
 
   // --- les bulletins de l'agent connecte ------------------------------------
@@ -176,29 +197,6 @@ export default function App() {
   useEffect(() => {
     chargerBulletins();
   }, [chargerBulletins]);
-
-  // Le jeton Supabase vit environ une heure : on le rafraichit avant qu'il
-  // expire, sinon un agent resté sur la page verrait ses appels echouer.
-  useEffect(() => {
-    if (!session?.refreshToken) return undefined;
-    const minuterie = setInterval(async () => {
-      try {
-        const rafraichie = await supaAuth("token?grant_type=refresh_token", {
-          refresh_token: session.refreshToken,
-        });
-        const misAJour = {
-          ...session,
-          accessToken: rafraichie.access_token,
-          refreshToken: rafraichie.refresh_token,
-        };
-        setSession(misAJour);
-        ecrireSessionStockee(misAJour);
-      } catch {
-        // Jeton revoque : le prochain appel echouera et renverra a la connexion.
-      }
-    }, 45 * 60 * 1000);
-    return () => clearInterval(minuterie);
-  }, [session]);
 
   const styleGlobal = <style>{STYLE_GLOBAL}</style>;
 
