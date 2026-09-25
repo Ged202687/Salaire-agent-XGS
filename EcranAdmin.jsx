@@ -150,6 +150,31 @@ export default function EcranAdmin({ session }) {
       }));
   }, [vuePerimetre, anneeCourante]);
 
+  // La fenetre des trois derniers mois se termine au mois choisi, pas a la fin
+  // de l'annee : demander juin doit donner avril-mai-juin. Sans mois choisi,
+  // elle se termine au dernier mois paye. Et elle ne compte que les mois ou
+  // l'agent a effectivement un bulletin : trois mois pour un agent arrive en
+  // juillet, ce serait une moyenne calculee sur du vide.
+  const fenetreTrois = useMemo(() => {
+    const presents = [...new Set(vuePerimetre.map((l) => l.mois))].sort((a, b) => a - b);
+    const fin = mois === TOUS ? presents[presents.length - 1] : Number(mois);
+    return presents.filter((m) => m <= fin).slice(-3);
+  }, [vuePerimetre, mois]);
+
+  const lignesFenetre = useMemo(
+    () => vuePerimetre.filter((l) => fenetreTrois.includes(l.mois)),
+    [vuePerimetre, fenetreTrois]
+  );
+
+  const primesFenetre = lignesFenetre.reduce(
+    (somme, l) => somme + nombre(l.prime_montant) + nombre(l.prime_coach),
+    0
+  );
+  // Le diviseur est le nombre de bulletins, pas le nombre de mois : pour un seul
+  // agent cela revient a une moyenne par mois, et pour tout le monde a une
+  // moyenne par agent et par mois. Les deux se lisent.
+  const moyennePrimes = lignesFenetre.length ? primesFenetre / lignesFenetre.length : null;
+
   const masse = vueFiltree.reduce((somme, l) => somme + nombre(l.total_mois), 0);
   const primes = vueFiltree.reduce(
     (somme, l) => somme + nombre(l.prime_montant) + nombre(l.prime_coach),
@@ -353,6 +378,21 @@ export default function EcranAdmin({ session }) {
           valeur={effectif ? formaterFcfa(masse / effectif) : "-"}
         />
         <Tuile label="Dont primes" valeur={formaterFcfa(primes)} />
+        <Tuile
+          label={
+            agent === TOUS
+              ? "Prime moyenne par agent et par mois — 3 derniers mois"
+              : "Prime moyenne par mois — 3 derniers mois"
+          }
+          valeur={moyennePrimes === null ? "-" : formaterFcfa(moyennePrimes)}
+          note={
+            fenetreTrois.length
+              ? `${fenetreTrois.map(nomDuMois).join(" · ")} — ${lignesFenetre.length} bulletin${
+                  lignesFenetre.length > 1 ? "s" : ""
+                }`
+              : "aucun mois payé"
+          }
+        />
         <Tuile
           label="Bulletins dans la sélection"
           valeur={vueFiltree.length}

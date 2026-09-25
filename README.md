@@ -51,9 +51,18 @@ crée la table, l'index, et les politiques RLS.
 ## Le tableau de bord du super admin
 
 « Tableau de bord » donne la vue d'ensemble : la masse salariale de la sélection
-en chiffre principal, quatre tuiles (agents payés, moyenne par agent, part des
-primes, nombre de bulletins), un graphe en colonnes de la masse salariale mois
-par mois, et le tableau de tous les bulletins.
+en chiffre principal, cinq tuiles (agents payés, moyenne par agent, part des
+primes, **prime moyenne sur les trois derniers mois**, nombre de bulletins), un
+graphe en colonnes de la masse salariale mois par mois, et le tableau de tous les
+bulletins.
+
+La tuile des trois derniers mois suit le filtre agent, et sa fenêtre **se termine
+au mois sélectionné** : demander juin donne avril-mai-juin, pas les trois derniers
+mois de l'année. Elle ne compte que les mois où l'agent a un bulletin — trois mois
+pour quelqu'un arrivé en juillet, ce serait une moyenne calculée sur du vide — et
+la note sous le chiffre nomme les mois retenus. Le diviseur est le nombre de
+bulletins : pour un agent seul cela donne une moyenne par mois, pour tout le monde
+une moyenne par agent et par mois, et le libellé le dit.
 
 Les filtres — année, mois, agent, projet — cadrent le tout. Le filtre mois est
 la seule exception : le graphe garde l'année entière sous les yeux et met le mois
