@@ -20,7 +20,8 @@ const ENCRE = rgb(0.06, 0.08, 0.12);
 const ENCRE_DOUCE = rgb(0.42, 0.46, 0.53);
 const FILET = rgb(0.85, 0.87, 0.9);
 const BANDE = rgb(0.965, 0.97, 0.98);
-const NUIT = rgb(0.04, 0.07, 0.16);
+// Bleu nuit XGS (#000B53), celui de l'application et du portail.
+const NUIT = rgb(0, 0.043, 0.325);
 
 // Helvetica est encode en WinAnsi : les accents francais passent, le reste non.
 // Plutot que de laisser pdf-lib lever une exception sur un nom exotique, on

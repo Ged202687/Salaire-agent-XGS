@@ -43,7 +43,7 @@ export default function Coquille({
           position: "sticky",
           top: 0,
           zIndex: 5,
-          background: "rgba(16, 26, 49, 0.78)",
+          background: "rgba(0, 5, 46, 0.78)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderBottom: `1px solid ${C.bordure}`,
@@ -69,15 +69,13 @@ export default function Coquille({
               <div
                 style={{
                   fontFamily: POLICE_TITRE,
-                  fontSize: 12,
+                  fontSize: 15,
                   fontWeight: 600,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
                   color: C.encre,
                   lineHeight: 1.2,
                 }}
               >
-                Mon salaire
+                Mon salaire<span style={{ color: C.soleil }}>.</span>
               </div>
               {profil?.nom && (
                 <div
@@ -103,11 +101,12 @@ export default function Coquille({
                   key={clef}
                   type="button"
                   onClick={() => onNaviguer(clef)}
-                  className="flex items-center gap-2"
+                  className={`flex items-center gap-2 bouton-fantome${actif ? " actif" : ""}`}
+                  aria-current={actif ? "page" : undefined}
                   style={{
                     ...boutonFantome,
                     background: actif ? C.soleilDoux : "transparent",
-                    borderColor: actif ? "rgba(253, 207, 79, 0.35)" : C.bordure,
+                    borderColor: actif ? C.soleilTrait : C.bordure,
                     color: actif ? C.soleil : C.encre2,
                     fontWeight: actif ? 600 : 400,
                   }}
@@ -121,7 +120,8 @@ export default function Coquille({
               onClick={onDeconnexion}
               title="Se déconnecter"
               aria-label="Se déconnecter"
-              style={{ ...boutonFantome, padding: "8px 11px", color: C.encre3 }}
+              className="bouton-fantome"
+              style={{ ...boutonFantome, padding: "9px 11px", color: C.encre3 }}
             >
               <LogOut size={13} />
             </button>

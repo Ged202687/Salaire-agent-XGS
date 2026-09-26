@@ -194,9 +194,10 @@ export default function EcranImport({ session, onAllerAdmin }) {
         </p>
 
         <label
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 zone-depot"
           style={{
             marginTop: 18,
+            position: "relative",
             border: `1.5px dashed ${C.bordureVive}`,
             borderRadius: 14,
             padding: "26px 16px",
@@ -213,7 +214,7 @@ export default function EcranImport({ session, onAllerAdmin }) {
             accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={choisirFichier}
             disabled={occupe}
-            style={{ display: "none" }}
+            className="fichier-cache"
           />
         </label>
 
@@ -502,6 +503,7 @@ export default function EcranImport({ session, onAllerAdmin }) {
               onClick={ecrire}
               disabled={occupe || !aEcrire.length}
               className="flex items-center justify-center gap-2"
+              className="bouton-soleil"
               style={{ ...boutonSoleil, marginTop: 18 }}
             >
               {occupe ? <Loader2 size={14} className="animate-spin" /> : null}

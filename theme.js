@@ -1,7 +1,7 @@
-// Identite visuelle : le bleu nuit XGS et le jaune soleil du logo, deja
-// presents sur l'ecran de connexion, etendus a tout l'outil. Avant, la
-// connexion etait nocturne et l'app basculait sur un gris clair : la rupture
-// est supprimee.
+// Identite visuelle : le bleu nuit XGS et le jaune soleil du logo, communs au
+// portail et aux autres outils (Aureo, Meridien, Horizon). Mon Salaire reste
+// sur fond sombre, comme le portail ; Poppins pour les titres, Inter pour le
+// texte et les montants (chiffres a chasse fixe, voir STYLE_GLOBAL).
 //
 // Une regle a ne pas franchir : le jaune est un accent d'INTERFACE (boutons,
 // unites, reperes), jamais une couleur de DONNEE. Il echoue a la bande de
@@ -9,29 +9,31 @@
 // couleur de serie est SERIE, validee sur la surface des cartes (bande de
 // clarte, plancher de chroma, contraste >= 3:1).
 export const C = {
-  // Les deux plans du fond, qui donnent la profondeur. Un bleu ardoise plutot
-  // qu'un presque-noir : la premiere version etait trop sombre.
-  nuit: "#16223E",
-  nuitProfond: "#101A31",
+  // Les deux plans du fond, qui donnent la profondeur : le bleu nuit du logo
+  // et sa version profonde, ceux du portail.
+  nuit: "#000B53",
+  nuitProfond: "#00052E",
+  nuitClaire: "#0B1766",
 
   // Surfaces. CARTE est la surface de reference du validateur : c'est la
   // couleur effective d'une carte, soit le fond de page plus le voile de VERRE.
-  carte: "#1F2B47",
-  carteHaute: "#26355A",
+  carte: "#0D175C",
+  carteHaute: "#162062",
   verre: "rgba(255, 255, 255, 0.05)",
   verreHaut: "rgba(255, 255, 255, 0.085)",
   bordure: "rgba(255, 255, 255, 0.12)",
   bordureVive: "rgba(255, 255, 255, 0.22)",
 
-  // Encres. ENCRE3 a ete eclaircie avec le fond : a #6E7A93 elle tombait a
-  // 3,28:1 sur la nouvelle surface, sous le seuil du petit texte.
+  // Encres : les lavandes du portail. ENCRE3 garde plus de 5:1 sur CARTE,
+  // au-dessus du seuil du petit texte.
   encre: "#FFFFFF",
-  encre2: "#AEB9CE",
-  encre3: "#8A97B4",
+  encre2: "#C7CBEB",
+  encre3: "#9096C0",
 
   // Accent de marque.
   soleil: "#FDCF4F",
   soleilDoux: "rgba(253, 207, 79, 0.14)",
+  soleilTrait: "rgba(253, 207, 79, 0.35)",
 
   // Donnee.
   serie: "#3987E5",
@@ -47,18 +49,16 @@ export const C = {
   alerteDoux: "rgba(255, 193, 77, 0.13)",
 };
 
-export const FONTS =
-  "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";
-
-export const POLICE_TITRE = '"Space Grotesk", system-ui, sans-serif';
-export const POLICE_TEXTE = '"IBM Plex Sans", system-ui, sans-serif';
-export const POLICE_CHIFFRE = '"IBM Plex Mono", ui-monospace, monospace';
+// Polices chargees une seule fois, par index.html.
+export const POLICE_TITRE = '"Poppins", system-ui, sans-serif';
+export const POLICE_TEXTE = '"Inter", system-ui, sans-serif';
+export const POLICE_CHIFFRE = '"Inter", system-ui, sans-serif';
 
 // Le fond de page, repris de l'ecran de connexion pour que l'entree dans
 // l'outil ne change pas de monde.
 export const FOND_NUIT =
-  `radial-gradient(1100px 620px at 14% -8%, #2E3D78 0%, rgba(46, 61, 120, 0) 62%),` +
-  `radial-gradient(900px 520px at 88% 4%, #1B5188 0%, rgba(27, 81, 136, 0) 58%),` +
+  `radial-gradient(1000px 600px at 12% -10%, ${C.nuitClaire} 0%, rgba(11, 23, 102, 0) 65%),` +
+  `radial-gradient(700px 420px at 92% 0%, rgba(253, 207, 79, 0.05) 0%, rgba(253, 207, 79, 0) 60%),` +
   `linear-gradient(180deg, ${C.nuit} 0%, ${C.nuitProfond} 100%)`;
 
 // --- briques de style partagees -------------------------------------------
@@ -84,10 +84,10 @@ export const boutonFantome = {
   background: "transparent",
   border: `1px solid ${C.bordure}`,
   borderRadius: 11,
-  padding: "8px 13px",
+  padding: "9px 13px",
   fontSize: 12.5,
   color: C.encre2,
-  transition: "border-color .15s ease, color .15s ease, background .15s ease",
+  transition: "border-color .15s ease-out, color .15s ease-out, background-color .15s ease-out",
 };
 
 export const boutonSoleil = {
@@ -101,7 +101,8 @@ export const boutonSoleil = {
   padding: "12px 18px",
   fontSize: 13.5,
   fontWeight: 600,
-  color: "#0A0A0A",
+  color: C.nuit,
+  transition: "background-color .15s ease-out, transform .15s ease-out",
 };
 
 export const selectSombre = {
@@ -111,13 +112,12 @@ export const selectSombre = {
   padding: "9px 12px",
   fontSize: 13.5,
   color: C.encre,
-  outline: "none",
   minWidth: 132,
   maxWidth: 240,
 };
 
 export const etiquetteChamp = {
-  fontSize: 10.5,
+  fontSize: 11,
   fontWeight: 600,
   letterSpacing: "0.09em",
   textTransform: "uppercase",

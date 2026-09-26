@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
-import { C, FONTS, POLICE_TITRE, boutonSoleil, carteVerre } from "./theme.js";
+import { C, POLICE_TEXTE, POLICE_TITRE, boutonSoleil, carteVerre } from "./theme.js";
 
 // L'entree dans l'outil. Le meme monde nocturne que la suite, et les memes
 // identifiants qu'Aureo : rien a creer, rien a retenir de plus.
@@ -17,7 +17,6 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
     padding: "13px 15px",
     fontSize: 14,
     color: C.encre,
-    outline: "none",
     transition: "border-color .16s ease, background .16s ease",
     marginTop: 7,
   });
@@ -33,19 +32,17 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
   return (
     <div
       style={{
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: POLICE_TEXTE,
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "radial-gradient(circle at 18% 20%, #32427F 0%, #17275E 45%, #101A31 100%)",
+        background: `radial-gradient(circle at 18% 20%, ${C.nuitClaire} 0%, ${C.nuit} 45%, ${C.nuitProfond} 100%)`,
         position: "relative",
         overflow: "hidden",
         padding: 20,
       }}
     >
-      <style>{`@import url('${FONTS}');`}</style>
-
       {/* Halos repris des teintes du logo : le soleil et la nuit. */}
       <div
         style={{
@@ -66,7 +63,7 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
           width: 440,
           height: 440,
           borderRadius: "50%",
-          background: "#3B4FA8",
+          background: C.nuitClaire,
           opacity: 0.24,
           filter: "blur(110px)",
           bottom: -170,
@@ -98,12 +95,12 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
                 fontFamily: POLICE_TITRE,
                 fontSize: 30,
                 fontWeight: 700,
-                letterSpacing: "-0.03em",
+                letterSpacing: "-0.02em",
                 color: C.encre,
                 lineHeight: 1.1,
               }}
             >
-              Mon salaire
+              Mon salaire<span style={{ color: C.soleil }}>.</span>
             </div>
             <p style={{ fontSize: 13, color: C.encre3, marginTop: 7 }}>
               Connectez-vous avec vos identifiants Auréo
@@ -156,6 +153,7 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
 
           {erreur && (
             <div
+              role="alert"
               className="flex items-center gap-2"
               style={{
                 background: C.baisseDoux,
@@ -173,6 +171,7 @@ export default function Connexion({ onConnexion, chargement, erreur }) {
           <button
             type="submit"
             disabled={chargement}
+            className="bouton-soleil"
             style={{ ...boutonSoleil, width: "100%", padding: "14px 18px" }}
           >
             {chargement ? (

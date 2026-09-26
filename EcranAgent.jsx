@@ -38,7 +38,7 @@ function Puce({ children }) {
 
 function Tuile({ label, valeur, accent }) {
   return (
-    <div style={{ ...tuileVerre, borderColor: accent ? "rgba(253, 207, 79, 0.3)" : C.bordure }}>
+    <div style={{ ...tuileVerre, borderColor: accent ? C.soleilTrait : C.bordure }}>
       <div style={{ ...etiquetteChamp, marginBottom: 7 }}>{label}</div>
       <div
         style={{
@@ -248,7 +248,7 @@ export default function EcranAgent({ profil, bulletins }) {
               minWidth: 0,
             }}
           >
-            <button type="button" onClick={telecharger} disabled={pdfEnCours} style={boutonSoleil}>
+            <button type="button" onClick={telecharger} disabled={pdfEnCours} className="bouton-soleil" style={boutonSoleil}>
               {pdfEnCours ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
               {pdfEnCours ? "Préparation…" : "Télécharger en PDF"}
             </button>

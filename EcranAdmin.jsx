@@ -426,6 +426,11 @@ export default function EcranAdmin({ session }) {
         <div style={titreSection}>
           {vueFiltree.length} bulletin{vueFiltree.length > 1 ? "s" : ""} dans la sélection
         </div>
+        {vueFiltree.length === 0 ? (
+          <div style={{ fontSize: 13, color: C.encre3, padding: "22px 0 6px", textAlign: "center" }}>
+            Aucun bulletin ne correspond à ces filtres.
+          </div>
+        ) : (
         <div style={{ overflowX: "auto", maxHeight: 460, overflowY: "auto", marginTop: 12 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
             <thead>
@@ -530,6 +535,7 @@ export default function EcranAdmin({ session }) {
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       <p style={{ fontSize: 11.5, color: C.encre3, marginTop: 20, lineHeight: 1.6 }}>

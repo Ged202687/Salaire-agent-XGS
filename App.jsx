@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Upload } from "lucide-react";
 import {
   C,
-  FONTS,
   FOND_NUIT,
   POLICE_TEXTE,
   POLICE_TITRE,
@@ -32,15 +31,32 @@ const CHAMPS_BULLETIN =
   "annee,mois,projet,poste,salaire_base,net_a_payer,prime_intitule,prime_montant,prime_coach,total_mois";
 
 const STYLE_GLOBAL = `
-@import url('${FONTS}');
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; background: ${C.nuitProfond}; }
+body { margin: 0; background: ${C.nuitProfond}; -webkit-font-smoothing: antialiased; }
+/* Montants alignes colonne sur colonne : chiffres a chasse fixe partout. */
+body { font-variant-numeric: tabular-nums; }
 button { cursor: pointer; font-family: inherit; }
-button:disabled { cursor: default; opacity: .75; }
+button:disabled { cursor: not-allowed; opacity: .55; }
 select, input { font-family: inherit; }
-.disp { font-family: 'Space Grotesk', sans-serif; }
+.disp { font-family: 'Poppins', sans-serif; }
+/* Etats des boutons : leurs styles de base sont en ligne, d'ou les !important. */
+.bouton-fantome:not(:disabled):hover { border-color: ${C.soleilTrait} !important; color: ${C.encre} !important; background-color: rgba(255,255,255,.04) !important; }
+.bouton-fantome.actif:not(:disabled):hover { color: ${C.soleil} !important; background-color: ${C.soleilDoux} !important; }
+.bouton-soleil:not(:disabled):hover { background-color: #FFD968 !important; }
+.bouton-soleil:not(:disabled):active, .bouton-fantome:not(:disabled):active { transform: scale(.98); }
+select { cursor: pointer; transition: border-color .15s ease-out; }
+select:hover { border-color: ${C.bordureVive} !important; }
+:where(button, a, input, select, [tabindex]):focus-visible { outline: 2px solid ${C.soleil}; outline-offset: 2px; }
+/* Champ fichier cache mais atteignable au clavier : le focus s'affiche sur sa zone. */
+.fichier-cache { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.zone-depot { transition: border-color .15s ease-out; }
+.zone-depot:focus-within { outline: 2px solid ${C.soleil}; outline-offset: 2px; }
+.zone-depot:hover { border-color: ${C.soleilTrait} !important; }
 .animate-spin { animation: tourne 1s linear infinite; }
 @keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
 ::selection { background: rgba(253, 207, 79, .3); }
 /* Les listes deroulantes natives ouvrent un menu clair par defaut : on le
    remet dans le meme monde que le reste. */
@@ -322,6 +338,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => naviguer("import")}
+            className="bouton-fantome"
             style={{ ...boutonFantome, marginTop: 16 }}
           >
             <Upload size={13} /> Importer un classeur
